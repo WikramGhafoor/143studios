@@ -21,6 +21,10 @@ export default function Home() {
         <h2 className="text-7xl text-red-600 font-black mt-4">
           143 Studios
         </h2>
+        
+        <p className="mt-5 text-xl text-gray-300 font-semibold">
+  Founder & CEO — Wikram Ghafoor
+</p>
 
         <p className="max-w-3xl mx-auto mt-8 text-gray-300 text-xl">
           Professional Music Label, Distribution,
