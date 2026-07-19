@@ -16,7 +16,7 @@ export const metadata = {
   title: "143 Studios | Official Website",
   description:
     "143 Studios - Music Label, Distribution, Publishing and Digital Media Company.",
-};
+}; 
 
 export default function RootLayout({
   children,
