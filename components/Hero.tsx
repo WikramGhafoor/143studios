@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export default function Hero() {
   return (
     <section
@@ -13,15 +15,22 @@ export default function Hero() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(220,38,38,0.20),transparent_65%)]"></div>
 
       {/* Hero Content */}
-      <div className="relative z-10 mx-auto max-w-5xl text-center animate-fade-in">
+      <div className="relative z-10 mx-auto max-w-5xl text-center animate-fade-in pt-20">
+
+        {/* Logo */}
+        <div className="relative w-28 h-28 md:w-36 md:h-36 mx-auto mb-6 drop-shadow-[0_0_20px_rgba(220,38,38,0.5)]">
+          <Image
+            src="/logo.png"
+            alt="143 Studios Logo"
+            fill
+            className="object-contain"
+            priority
+          />
+        </div>
 
         <h1 className="text-6xl font-black tracking-wide text-white drop-shadow-lg md:text-8xl">
           143 <span className="text-red-600">Studios</span>
         </h1>
-
-        <p className="mt-5 text-2xl font-semibold text-gray-200">
-          Official Website
-        </p>
 
         <p className="mt-6 text-lg leading-8 text-gray-300">
           Music Label • Distribution • Publishing • Recording Studio

@@ -58,7 +58,7 @@ export default function Contact() {
             </h3>
 
             <a
-              href="https://wa.me/YOUR_WHATSAPP_NUMBER"
+              href="https://wa.me/923044457505"
               target="_blank"
               rel="noopener noreferrer"
               className="mt-3 inline-block rounded-lg bg-green-600 px-6 py-3 font-semibold text-white transition hover:scale-105 hover:bg-green-700"
@@ -80,36 +80,51 @@ export default function Contact() {
 
           <div className="mt-8 flex flex-wrap justify-center gap-8 text-4xl">
 
+            {/* Facebook */}
             <a
-              href="#"
+              href="https://www.facebook.com/profile.php?id=61590549212493"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-blue-500 transition duration-300 hover:scale-125 hover:text-white"
             >
               <FaFacebook />
             </a>
 
+            {/* Instagram */}
             <a
-              href="#"
+              href="https://www.instagram.com/143studios.guru"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-pink-500 transition duration-300 hover:scale-125 hover:text-white"
             >
               <FaInstagram />
             </a>
 
+            {/* YouTube */}
             <a
-              href="#"
+              href="https://www.youtube.com/@143StudiosOfficial"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-red-600 transition duration-300 hover:scale-125 hover:text-white"
             >
               <FaYoutube />
             </a>
 
+            {/* TikTok */}
             <a
-              href="#"
+              href="https://www.tiktok.com/@143studios"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-white transition duration-300 hover:scale-125 hover:text-red-500"
             >
               <FaTiktok />
             </a>
 
+            {/* WhatsApp Channel */}
             <a
-              href="#"
+              href="https://whatsapp.com/channel/0029VbCpgUcGufIyFHUFlw37"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-green-500 transition duration-300 hover:scale-125 hover:text-white"
             >
               <FaWhatsapp />
