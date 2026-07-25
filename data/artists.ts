@@ -1,46 +1,6 @@
 export const artists = [
-  {
-    id: "ART-0000",
-
-    slug: "guru",
-
-    stageName: "Guru",
-
-    realName: "Wikram Ghafoor",
-
-    artistType: "Singer • Producer • Songwriter",
-
-    genres: ["Sad", "Rap", "Hip Hop"],
-
-    country: "Pakistan",
-
-    city: "Sheikhupura",
-
-    signedSince: "2026",
-
-    tagline: "My Life, My Rules.",
-
-    bio:
-      "Guru Is A Pakistani Singer, Producer And Songwriter From Sheikhupura. His Music Blends Sad, Rap And Hip Hop While Telling Real-Life Stories With Emotion And Authenticity. As The Founder Of 143 Studios, He Is Dedicated To Creating Original Music And Supporting Independent Artists.",
-
-    image: "/artists/guru.jpg",
-
-    banner: "/artists/guru-banner.jpg",
-
-    socials: {
-      spotify: "",
-      appleMusic: "",
-      youtube: "",
-      instagram: "",
-      facebook: "",
-      tiktok: "",
-    },
-
-    releases: [],
-  },
-
-  {
-    id: "ART-0001",
+   {
+    id: "143-ART-0001",
 
     slug: "rk",
 
@@ -80,7 +40,7 @@ export const artists = [
   },
 
   {
-    id: "ART-0002",
+    id: "143-ART-0002",
 
     slug: "angel-raja",
 

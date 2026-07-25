@@ -12,7 +12,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-black text-white">
 
-      <Header />
+    
 
       <Hero />
 
@@ -28,7 +28,7 @@ export default function Home() {
 
       <Contact />
 
-      <Footer />
+      
 
     </main>
   );

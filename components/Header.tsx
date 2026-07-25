@@ -48,8 +48,8 @@ export default function Header() {
           {[
             ["About", "#about"],
             ["Services", "#services"],
-            ["Artists", "#artists"],
-            ["Releases", "#releases"],
+            ["Artists", "/artists"],
+            ["Releases", "/releases"],
             ["Contact", "#contact"],
           ].map(([title, link]) => (
             <a
@@ -85,8 +85,8 @@ export default function Header() {
             {[
               ["About", "#about"],
               ["Services", "#services"],
-              ["Artists", "#artists"],
-              ["Releases", "#releases"],
+              ["Artists", "/artists"],
+              ["Releases", "/releases"],
               ["Contact", "#contact"],
             ].map(([title, link]) => (
 

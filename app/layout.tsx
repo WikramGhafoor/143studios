@@ -1,6 +1,7 @@
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Image from "next/image";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -34,23 +35,19 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-zinc-950 text-white">
-        {/* Global Header with Logo */}
-        <header className="w-full border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/logo.png"
-              alt="143 Studios Logo"
-              width={40}
-              height={40}
-              className="object-contain"
-            />
-            <span className="font-bold text-lg tracking-wider">143 STUDIOS</span>
-          </div>
-        </header>
+      <body className="min-h-screen flex flex-col bg-zinc-950 text-white">
 
-        {/* Main Page Content */}
-        <main className="flex-1 flex flex-col">{children}</main>
+        {/* Global Header */}
+        <Header />
+
+        {/* Main Content */}
+        <main className="flex-1">
+          {children}
+        </main>
+
+        {/* Global Footer */}
+        <Footer />
+
       </body>
     </html>
   );
