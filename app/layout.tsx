@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -18,6 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 const siteUrl = "https://143studios.online";
+const googleAnalyticsId = "G-KYV9X235G4";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -149,27 +151,35 @@ const structuredData = {
       name: "143 Studios",
       legalName: "143 Studios (SMC-Private) Limited",
       url: siteUrl,
+
       logo: {
         "@type": "ImageObject",
         url: `${siteUrl}/logo.png`,
       },
+
       image: `${siteUrl}/og-image.jpg`,
+
       description:
         "Music Label, Artist Management, Music Distribution, Publishing, Recording Studio And Digital Media Company.",
+
       email: "143studiospakistan@gmail.com",
+
       founder: {
         "@type": "Person",
         name: "Wikram Ghafoor",
-        alternateName: "Guru ",
+        alternateName: "Guru B",
       },
+
       foundingLocation: {
         "@type": "Country",
         name: "Pakistan",
       },
+
       areaServed: {
         "@type": "Place",
         name: "Worldwide",
       },
+
       sameAs: [
         "https://www.facebook.com/profile.php?id=61590549212493",
         "https://www.instagram.com/143studios.guru",
@@ -177,6 +187,7 @@ const structuredData = {
         "https://www.tiktok.com/@143studios",
         "https://whatsapp.com/channel/0029VbCpgUcGufIyFHUFlw37",
       ],
+
       knowsAbout: [
         "Record Label Services",
         "Music Production",
@@ -189,24 +200,29 @@ const structuredData = {
         "Video Production",
       ],
     },
+
     {
       "@type": "WebSite",
       "@id": `${siteUrl}/#website`,
       url: siteUrl,
       name: "143 Studios",
-      description:
-        "Official Website Of 143 Studios.",
+      description: "Official Website Of 143 Studios.",
+
       publisher: {
         "@id": `${siteUrl}/#organization`,
       },
+
       inLanguage: "en",
+
       potentialAction: {
         "@type": "SearchAction",
+
         target: {
           "@type": "EntryPoint",
           urlTemplate:
             `${siteUrl}/search?q={search_term_string}`,
         },
+
         "query-input":
           "required name=search_term_string",
       },
@@ -227,23 +243,58 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-screen flex-col bg-zinc-950 text-white">
+        {/* Google Analytics */}
+
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}`}
+          strategy="afterInteractive"
+        />
+
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
+        >
+          {`
+            window.dataLayer = window.dataLayer || [];
+
+            function gtag() {
+              window.dataLayer.push(arguments);
+            }
+
+            gtag("js", new Date());
+
+            gtag("config", "${googleAnalyticsId}", {
+              send_page_view: true
+            });
+          `}
+        </Script>
+
+        {/* Structured Data */}
+
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(structuredData).replace(
-              /</g,
-              "\\u003c"
-            ),
+            __html: JSON.stringify(
+              structuredData
+            ).replace(/</g, "\\u003c"),
           }}
         />
 
+        {/* Global Header */}
+
         <Header />
 
+        {/* Logged-In Admin Quick Access */}
+
         <AdminQuickAccess />
+
+        {/* Main Website Content */}
 
         <main className="flex-1">
           {children}
         </main>
+
+        {/* Global Footer */}
 
         <Footer />
       </body>

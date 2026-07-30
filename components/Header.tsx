@@ -35,10 +35,6 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
     if (!menuOpen) {
       return;
     }
@@ -59,12 +55,16 @@ export default function Header() {
     };
   }, [menuOpen]);
 
+  function closeMenu() {
+    setMenuOpen(false);
+  }
+
   return (
     <header className="sticky top-0 z-50 border-b border-red-900 bg-black/90 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
         <Link
           href="/"
-          onClick={() => setMenuOpen(false)}
+          onClick={closeMenu}
           aria-label="143 Studios Home"
           className="group flex min-w-0 items-center gap-3 sm:gap-4"
         >
@@ -168,9 +168,7 @@ export default function Header() {
                     aria-current={
                       active ? "page" : undefined
                     }
-                    onClick={() =>
-                      setMenuOpen(false)
-                    }
+                    onClick={closeMenu}
                     className={`flex items-center gap-2 border-b border-neutral-800 py-4 text-lg font-medium transition-colors last:border-b-0 ${
                       active
                         ? "text-red-500"

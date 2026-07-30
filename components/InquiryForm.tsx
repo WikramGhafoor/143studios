@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 type InquiryFormState = {
@@ -62,23 +62,19 @@ export default function InquiryForm() {
   }, [searchParams]);
 
   const [formData, setFormData] =
-    useState<InquiryFormState>(initialFormState);
-
-  const [submitting, setSubmitting] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("");
-  const [statusType, setStatusType] =
-    useState<"success" | "error" | null>(null);
-
-  useEffect(() => {
-    if (!requestedService) {
-      return;
-    }
-
-    setFormData((current) => ({
-      ...current,
+    useState<InquiryFormState>(() => ({
+      ...initialFormState,
       service: requestedService,
     }));
-  }, [requestedService]);
+
+  const [submitting, setSubmitting] =
+    useState(false);
+
+  const [statusMessage, setStatusMessage] =
+    useState("");
+
+  const [statusType, setStatusType] =
+    useState<"success" | "error" | null>(null);
 
   function updateField(
     field: keyof InquiryFormState,
@@ -113,7 +109,8 @@ export default function InquiryForm() {
         body: JSON.stringify(formData),
       });
 
-      const data = (await response.json()) as ApiResponse;
+      const data =
+        (await response.json()) as ApiResponse;
 
       if (!response.ok || !data.success) {
         setStatusType("error");
@@ -133,7 +130,10 @@ export default function InquiryForm() {
         service: requestedService,
       });
     } catch (error) {
-      console.error("Inquiry Form Error:", error);
+      console.error(
+        "Inquiry Form Error:",
+        error
+      );
 
       setStatusType("error");
       setStatusMessage(
@@ -147,7 +147,7 @@ export default function InquiryForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mt-10 space-y-6"
+      className="relative mt-10 space-y-6"
       noValidate
     >
       <div
@@ -166,7 +166,10 @@ export default function InquiryForm() {
           autoComplete="off"
           value={formData.website}
           onChange={(event) =>
-            updateField("website", event.target.value)
+            updateField(
+              "website",
+              event.target.value
+            )
           }
         />
       </div>
@@ -228,7 +231,10 @@ export default function InquiryForm() {
             required
             value={formData.service}
             onChange={(event) =>
-              updateField("service", event.target.value)
+              updateField(
+                "service",
+                event.target.value
+              )
             }
             className="mt-3 w-full rounded-xl border border-zinc-700 bg-black px-5 py-4 text-white outline-none transition-colors focus:border-red-600 focus-visible:ring-2 focus-visible:ring-red-500"
           >
@@ -277,7 +283,10 @@ export default function InquiryForm() {
           maxLength={5000}
           value={formData.message}
           onChange={(event) =>
-            updateField("message", event.target.value)
+            updateField(
+              "message",
+              event.target.value
+            )
           }
           placeholder="Tell Us About Your Project, Goals, Timeline And Requirements"
           className="mt-3 w-full resize-y rounded-xl border border-zinc-700 bg-black px-5 py-4 text-white outline-none transition-colors placeholder:text-gray-600 focus:border-red-600 focus-visible:ring-2 focus-visible:ring-red-500"
@@ -290,8 +299,9 @@ export default function InquiryForm() {
 
       <div className="rounded-2xl border border-zinc-800 bg-black p-5">
         <p className="text-sm leading-7 text-gray-400">
-          Please Do Not Include Passwords, Payment Details Or
-          Other Sensitive Information In This Form.
+          Please Do Not Include Passwords,
+          Payment Details Or Other Sensitive
+          Information In This Form.
         </p>
       </div>
 
