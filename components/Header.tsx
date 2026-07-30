@@ -1,112 +1,197 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { HiMenu, HiX } from "react-icons/hi";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { HiMenu, HiSearch, HiX } from "react-icons/hi";
+
+type NavigationLink = {
+  title: string;
+  href: string;
+};
+
+const navigationLinks: NavigationLink[] = [
+  { title: "About", href: "/about" },
+  { title: "Services", href: "/services" },
+  { title: "Artists", href: "/artists" },
+  { title: "Releases", href: "/releases" },
+  { title: "Search", href: "/search" },
+  { title: "Contact", href: "/contact" },
+];
+
+function isActiveRoute(
+  pathname: string,
+  href: string
+): boolean {
+  return (
+    pathname === href ||
+    pathname.startsWith(`${href}/`)
+  );
+}
 
 export default function Header() {
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return;
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleEscape
+      );
+    };
+  }, [menuOpen]);
 
   return (
     <header className="sticky top-0 z-50 border-b border-red-900 bg-black/90 backdrop-blur-md">
-
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-
-        {/* Logo */}
-
-        <a
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
+        <Link
           href="/"
-          className="group flex items-center gap-4"
+          onClick={() => setMenuOpen(false)}
+          aria-label="143 Studios Home"
+          className="group flex min-w-0 items-center gap-3 sm:gap-4"
         >
           <Image
             src="/logo.png"
-            alt="143 Studios"
+            alt="143 Studios Logo"
             width={60}
             height={60}
             priority
-            className="transition duration-300 group-hover:scale-105"
+            sizes="60px"
+            className="h-[52px] w-[52px] shrink-0 object-contain transition-transform duration-300 group-hover:scale-105 sm:h-[60px] sm:w-[60px]"
           />
 
-          <div>
-
-            <h1 className="text-2xl font-black text-white">
+          <div className="min-w-0">
+            <div className="truncate text-xl font-black text-white sm:text-2xl">
               143 Studios
-            </h1>
+            </div>
 
-            <p className="mt-1 text-sm font-semibold tracking-wide text-red-500">
+            <p className="mt-1 hidden text-sm font-semibold tracking-wide text-red-500 sm:block">
               Our Dreams Beyond Beats
             </p>
-
           </div>
+        </Link>
 
-        </a>
+        <nav
+          aria-label="Main Navigation"
+          className="hidden items-center gap-7 md:flex"
+        >
+          {navigationLinks.map(({ title, href }) => {
+            const active = isActiveRoute(
+              pathname,
+              href
+            );
 
-        {/* Desktop Navigation */}
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={
+                  active ? "page" : undefined
+                }
+                className={`relative flex items-center gap-2 font-medium transition-colors duration-300 after:absolute after:-bottom-2 after:left-0 after:h-[2px] after:bg-red-600 after:transition-all after:duration-300 ${
+                  active
+                    ? "text-red-500 after:w-full"
+                    : "text-white after:w-0 hover:text-red-500 hover:after:w-full"
+                }`}
+              >
+                {title === "Search" && (
+                  <HiSearch
+                    aria-hidden="true"
+                    className="text-lg"
+                  />
+                )}
 
-        <nav className="hidden items-center gap-8 md:flex">
-
-          {[
-            ["About", "#about"],
-            ["Services", "#services"],
-            ["Artists", "/artists"],
-            ["Releases", "/releases"],
-            ["Contact", "#contact"],
-          ].map(([title, link]) => (
-            <a
-              key={title}
-              href={link}
-              className="relative font-medium text-white transition duration-300 hover:text-red-500 after:absolute after:-bottom-2 after:left-0 after:h-[2px] after:w-0 after:bg-red-600 after:transition-all after:duration-300 hover:after:w-full"
-            >
-              {title}
-            </a>
-          ))}
-
+                {title}
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* Mobile Menu Button */}
-
         <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="text-3xl text-white md:hidden"
+          type="button"
+          onClick={() =>
+            setMenuOpen((current) => !current)
+          }
+          aria-label={
+            menuOpen ? "Close Menu" : "Open Menu"
+          }
+          aria-expanded={menuOpen}
+          aria-controls="mobile-navigation"
+          className="rounded-lg p-2 text-3xl text-white transition-colors hover:bg-neutral-900 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 md:hidden"
         >
-          {menuOpen ? <HiX /> : <HiMenu />}
+          {menuOpen ? (
+            <HiX aria-hidden="true" />
+          ) : (
+            <HiMenu aria-hidden="true" />
+          )}
         </button>
-
       </div>
 
-      {/* Mobile Menu */}
-
       {menuOpen && (
+        <div
+          id="mobile-navigation"
+          className="border-t border-red-900 bg-neutral-950 md:hidden"
+        >
+          <nav
+            aria-label="Mobile Navigation"
+            className="flex flex-col px-4 py-4 sm:px-6"
+          >
+            {navigationLinks.map(
+              ({ title, href }) => {
+                const active = isActiveRoute(
+                  pathname,
+                  href
+                );
 
-        <div className="border-t border-red-900 bg-neutral-950 md:hidden">
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    aria-current={
+                      active ? "page" : undefined
+                    }
+                    onClick={() =>
+                      setMenuOpen(false)
+                    }
+                    className={`flex items-center gap-2 border-b border-neutral-800 py-4 text-lg font-medium transition-colors last:border-b-0 ${
+                      active
+                        ? "text-red-500"
+                        : "text-white hover:text-red-500"
+                    }`}
+                  >
+                    {title === "Search" && (
+                      <HiSearch
+                        aria-hidden="true"
+                        className="text-xl"
+                      />
+                    )}
 
-          <nav className="flex flex-col px-6 py-6">
-
-            {[
-              ["About", "#about"],
-              ["Services", "#services"],
-              ["Artists", "/artists"],
-              ["Releases", "/releases"],
-              ["Contact", "#contact"],
-            ].map(([title, link]) => (
-
-              <a
-                key={title}
-                href={link}
-                onClick={() => setMenuOpen(false)}
-                className="border-b border-neutral-800 py-4 text-lg font-medium text-white transition hover:text-red-500"
-              >
-                {title}
-              </a>
-
-            ))}
-
+                    {title}
+                  </Link>
+                );
+              }
+            )}
           </nav>
-
         </div>
-
       )}
-
     </header>
   );
 }

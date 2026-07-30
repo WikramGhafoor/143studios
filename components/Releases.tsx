@@ -1,80 +1,164 @@
-export default function Releases() {
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+import ReleaseCard from "./ReleaseCard";
+
+type ReleaseArtist = {
+  stage_name: string | null;
+};
+
+type FeaturedRelease = {
+  id: number;
+  slug: string | null;
+  title: string | null;
+  release_type: string | null;
+  release_date: string | null;
+  cover: string | null;
+  artists: ReleaseArtist | ReleaseArtist[] | null;
+};
+
+function getArtistName(
+  artists: FeaturedRelease["artists"]
+): string {
+  if (!artists) {
+    return "Unknown Artist";
+  }
+
+  const artist = Array.isArray(artists)
+    ? artists[0]
+    : artists;
+
+  return (
+    artist?.stage_name?.trim() ||
+    "Unknown Artist"
+  );
+}
+
+function formatReleaseDate(
+  value: string | null
+): string {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+export default async function Releases() {
+  const { data, error } = await supabase
+    .from("releases")
+    .select(`
+      id,
+      slug,
+      title,
+      release_type,
+      release_date,
+      cover,
+      artists (
+        stage_name
+      )
+    `)
+    .eq("status", "active")
+    .order("featured", {
+      ascending: false,
+    })
+    .order("sort_order", {
+      ascending: true,
+      nullsFirst: false,
+    })
+    .order("release_date", {
+      ascending: false,
+    })
+    .limit(6);
+
+  if (error) {
+    console.error(
+      "Homepage Releases Error:",
+      error
+    );
+
+    return null;
+  }
+
+  const releases =
+    ((data as FeaturedRelease[] | null) ?? [])
+      .filter(
+        (
+          release
+        ): release is FeaturedRelease & {
+          slug: string;
+        } =>
+          Boolean(release.slug?.trim())
+      );
+
+  if (releases.length === 0) {
+    return null;
+  }
+
   return (
     <section
       id="releases"
-      className="bg-black px-6 py-24"
+      className="bg-black px-4 py-20 sm:px-6 md:py-24"
     >
-      <div className="mx-auto max-w-6xl text-center">
+      <div className="mx-auto max-w-7xl">
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-4xl font-black text-white sm:text-5xl">
+              Latest{" "}
+              <span className="text-red-600">
+                Releases
+              </span>
+            </h2>
 
-        <h2 className="text-5xl font-black text-white">
-          Latest <span className="text-red-600">Releases</span>
-        </h2>
-
-        <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-gray-400">
-          Explore Official Music Releases From 143 Studios. Singles, Albums,
-          EPs And Future Projects Will Be Available Here Across All Major
-          Streaming Platforms.
-        </p>
-
-        <div className="mt-14 grid gap-8 md:grid-cols-3">
-
-          {/* Release Card */}
-
-          <div className="rounded-2xl border border-red-900 bg-neutral-950 p-8 transition duration-300 hover:-translate-y-2 hover:border-red-600 hover:shadow-xl hover:shadow-red-900/30">
-
-            <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-xl border-2 border-red-600 bg-black text-5xl">
-              💿
-            </div>
-
-            <h3 className="mt-6 text-2xl font-bold text-white">
-              Coming Soon
-            </h3>
-
-            <p className="mt-4 text-gray-400">
-              Official Singles And Albums Will Be Released Here Soon.
+            <p className="mt-6 max-w-3xl text-lg leading-8 text-gray-400">
+              Explore Official Music Releases From
+              143 Studios Across All Major Streaming
+              Platforms.
             </p>
-
           </div>
 
-          {/* Release Card */}
-
-          <div className="rounded-2xl border border-red-900 bg-neutral-950 p-8 transition duration-300 hover:-translate-y-2 hover:border-red-600 hover:shadow-xl hover:shadow-red-900/30">
-
-            <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-xl border-2 border-red-600 bg-black text-5xl">
-              🎵
-            </div>
-
-            <h3 className="mt-6 text-2xl font-bold text-white">
-              New Music
-            </h3>
-
-            <p className="mt-4 text-gray-400">
-              New Projects, Collaborations And Exclusive Releases Will Appear
-              Here.
-            </p>
-
-          </div>
-
-          {/* Release Card */}
-
-          <div className="rounded-2xl border border-red-900 bg-neutral-950 p-8 transition duration-300 hover:-translate-y-2 hover:border-red-600 hover:shadow-xl hover:shadow-red-900/30">
-
-            <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-xl border-2 border-red-600 bg-black text-5xl">
-              🚀
-            </div>
-
-            <h3 className="mt-6 text-2xl font-bold text-white">
-              Stay Tuned
-            </h3>
-
-            <p className="mt-4 text-gray-400">
-              Follow 143 Studios To Be The First To Listen To Upcoming Releases.
-            </p>
-
-          </div>
-
+          <Link
+            href="/releases"
+            className="inline-flex shrink-0 items-center justify-center rounded-lg border border-red-600 px-6 py-3 font-semibold text-red-500 transition-colors hover:bg-red-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+          >
+            View All Releases →
+          </Link>
         </div>
 
+        <div className="mt-16 grid items-stretch gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {releases.map((release) => (
+            <ReleaseCard
+              key={release.id}
+              release={{
+                id: release.id,
+                slug: release.slug,
+                title:
+                  release.title?.trim() ||
+                  "Untitled Release",
+                artist: getArtistName(
+                  release.artists
+                ),
+                type:
+                  release.release_type?.trim() ||
+                  "Release",
+                releaseDate:
+                  formatReleaseDate(
+                    release.release_date
+                  ),
+                cover: release.cover || "",
+              }}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );
