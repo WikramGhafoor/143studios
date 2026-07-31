@@ -17,7 +17,8 @@ const allowedTypes = [
 ];
 
 function sanitizeFileName(fileName: string) {
-  const lastDot = fileName.lastIndexOf(".");
+  const lastDot =
+    fileName.lastIndexOf(".");
 
   const baseName =
     lastDot > 0
@@ -26,7 +27,9 @@ function sanitizeFileName(fileName: string) {
 
   const extension =
     lastDot > 0
-      ? fileName.slice(lastDot).toLowerCase()
+      ? fileName
+          .slice(lastDot)
+          .toLowerCase()
       : ".mp3";
 
   const cleanName = baseName
@@ -40,10 +43,13 @@ function sanitizeFileName(fileName: string) {
   return `${cleanName || "audio-file"}${extension}`;
 }
 
-export async function POST(request: Request) {
+export async function POST(
+  request: Request
+) {
   try {
     const workerUrl =
-      process.env.R2_WORKER_URL?.replace(/\/+$/, "");
+      process.env.R2_WORKER_URL
+        ?.replace(/\/+$/, "");
 
     const uploadSecret =
       process.env.R2_UPLOAD_SECRET;
@@ -67,15 +73,21 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = (await request.json()) as {
-      fileName?: string;
-      fileType?: string;
-      fileSize?: number;
-    };
+    const body =
+      (await request.json()) as {
+        fileName?: string;
+        fileType?: string;
+        fileSize?: number;
+      };
 
-    const fileName = body.fileName?.trim();
-    const fileType = body.fileType?.trim();
-    const fileSize = Number(body.fileSize);
+    const fileName =
+      body.fileName?.trim();
+
+    const fileType =
+      body.fileType?.trim();
+
+    const fileSize =
+      Number(body.fileSize);
 
     if (
       !fileName ||
@@ -86,7 +98,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Audio File Details Are Missing.",
+          message:
+            "Audio File Details Are Missing.",
         },
         {
           status: 400,
@@ -101,7 +114,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Unsupported Audio File Type.",
+          message:
+            "Unsupported Audio File Type.",
         },
         {
           status: 400,
@@ -109,7 +123,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const maximumSize = 100 * 1024 * 1024;
+    const maximumSize =
+      100 * 1024 * 1024;
 
     if (fileSize > maximumSize) {
       return NextResponse.json(
@@ -130,19 +145,22 @@ export async function POST(request: Request) {
     const uniqueName =
       `${Date.now()}-${cleanFileName}`;
 
-    const key = `releases/${uniqueName}`;
+    const key =
+      `releases/${uniqueName}`;
 
-    const expires = Date.now() + 10 * 60 * 1000;
+    const expires =
+      Date.now() + 10 * 60 * 1000;
 
     const signaturePayload =
       `${key}|${fileType}|${fileSize}|${expires}`;
 
-    const signature = createHmac(
-      "sha256",
-      uploadSecret
-    )
-      .update(signaturePayload)
-      .digest("hex");
+    const signature =
+      createHmac(
+        "sha256",
+        uploadSecret
+      )
+        .update(signaturePayload)
+        .digest("hex");
 
     return NextResponse.json({
       success: true,
@@ -150,7 +168,8 @@ export async function POST(request: Request) {
       key,
       expires,
       signature,
-      publicUrl: `${publicUrl}/${key}`,
+      publicUrl:
+        `${publicUrl}/${key}`,
     });
   } catch (error) {
     console.error(

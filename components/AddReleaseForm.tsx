@@ -302,6 +302,8 @@ export default function AddReleaseForm() {
               String(result.expires),
             "X-Upload-Signature":
               result.signature,
+            "X-Upload-Size":
+              String(file.size),
           },
           body: file,
         }
