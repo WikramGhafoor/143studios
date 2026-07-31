@@ -211,6 +211,52 @@ export default function AddReleaseForm() {
     }
   }
 
+  async function uploadAudio(
+  event: React.ChangeEvent<HTMLInputElement>
+) {
+  const file = event.target.files?.[0];
+
+  if (!file) return;
+
+  if (!file.type.startsWith("audio/")) {
+    alert("Please Select A Valid Audio File.");
+    return;
+  }
+
+  setUploading(true);
+
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(
+      "/api/admin/upload-audio",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const result = await response.json();
+
+    if (!result.success) {
+      alert(result.message);
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      audio_url: result.url,
+    }));
+  } catch (error) {
+    console.error(error);
+    alert("Audio Upload Failed.");
+  } finally {
+    setUploading(false);
+    event.target.value = "";
+  }
+}
+
   async function saveRelease(
     event: React.FormEvent<HTMLFormElement>
   ) {
@@ -492,16 +538,37 @@ export default function AddReleaseForm() {
 
           <div>
             <p className="mb-3 font-bold">
-              Audio URL
-            </p>
+  Audio File
+</p>
 
-            <input
-              name="audio_url"
-              value={form.audio_url}
-              onChange={handleChange}
-              placeholder="Audio File URL"
-              className={inputClass}
-            />
+<input
+  type="file"
+  accept="audio/*"
+  disabled={uploading}
+  onChange={uploadAudio}
+  className={inputClass}
+/>
+
+{uploading && (
+  <p className="mt-3 text-yellow-400">
+    Uploading Audio...
+  </p>
+)}
+
+{form.audio_url && (
+  <>
+    <p className="mt-4 text-green-400 break-all">
+      Audio Uploaded Successfully
+    </p>
+
+    <audio
+      controls
+      preload="none"
+      src={form.audio_url}
+      className="mt-4 w-full"
+    />
+  </>
+)}
 
             {form.audio_url && (
               <audio
