@@ -1,11 +1,5 @@
+import { createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import {
-  r2,
-  R2_BUCKET,
-  R2_PUBLIC_URL,
-} from "@/lib/r2";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,6 +42,31 @@ function sanitizeFileName(fileName: string) {
 
 export async function POST(request: Request) {
   try {
+    const workerUrl =
+      process.env.R2_WORKER_URL?.replace(/\/+$/, "");
+
+    const uploadSecret =
+      process.env.R2_UPLOAD_SECRET;
+
+    const publicUrl =
+      (
+        process.env.R2_PUBLIC_URL ||
+        "https://audio.143studios.online"
+      ).replace(/\/+$/, "");
+
+    if (!workerUrl || !uploadSecret) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Worker Upload Environment Variables Are Missing.",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
     const body = (await request.json()) as {
       fileName?: string;
       fileType?: string;
@@ -58,13 +77,20 @@ export async function POST(request: Request) {
     const fileType = body.fileType?.trim();
     const fileSize = Number(body.fileSize);
 
-    if (!fileName || !fileType || !fileSize) {
+    if (
+      !fileName ||
+      !fileType ||
+      !Number.isFinite(fileSize) ||
+      fileSize <= 0
+    ) {
       return NextResponse.json(
         {
           success: false,
           message: "Audio File Details Are Missing.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -77,7 +103,9 @@ export async function POST(request: Request) {
           success: false,
           message: "Unsupported Audio File Type.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -87,45 +115,46 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Audio File Must Be Smaller Than 100 MB.",
+          message:
+            "Audio File Must Be Smaller Than 100 MB.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const cleanFileName = sanitizeFileName(fileName);
+    const cleanFileName =
+      sanitizeFileName(fileName);
 
     const uniqueName =
       `${Date.now()}-${cleanFileName}`;
 
     const key = `releases/${uniqueName}`;
 
-    const command = new PutObjectCommand({
-      Bucket: R2_BUCKET,
-      Key: key,
-      ContentType: fileType,
-    });
+    const expires = Date.now() + 10 * 60 * 1000;
 
-    const uploadUrl = await getSignedUrl(
-      r2,
-      command,
-      {
-        expiresIn: 600,
-      }
-    );
+    const signaturePayload =
+      `${key}|${fileType}|${fileSize}|${expires}`;
 
-    const publicUrl =
-      `${R2_PUBLIC_URL}/${key}`;
+    const signature = createHmac(
+      "sha256",
+      uploadSecret
+    )
+      .update(signaturePayload)
+      .digest("hex");
 
     return NextResponse.json({
       success: true,
-      uploadUrl,
-      publicUrl,
-      fileName: uniqueName,
+      workerUrl,
+      key,
+      expires,
+      signature,
+      publicUrl: `${publicUrl}/${key}`,
     });
   } catch (error) {
     console.error(
-      "R2 Signed Upload Error:",
+      "Worker Upload Preparation Error:",
       error
     );
 
@@ -137,7 +166,9 @@ export async function POST(request: Request) {
             ? error.message
             : "Upload Preparation Failed.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

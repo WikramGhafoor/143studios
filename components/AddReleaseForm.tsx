@@ -226,6 +226,16 @@ export default function AddReleaseForm() {
       return;
     }
 
+    const maximumSize = 100 * 1024 * 1024;
+
+    if (file.size > maximumSize) {
+      alert(
+        "Audio File Must Be Smaller Than 100 MB."
+      );
+      event.target.value = "";
+      return;
+    }
+
     setUploading(true);
 
     try {
@@ -250,7 +260,10 @@ export default function AddReleaseForm() {
       let result: {
         success?: boolean;
         message?: string;
-        uploadUrl?: string;
+        workerUrl?: string;
+        key?: string;
+        expires?: number;
+        signature?: string;
         publicUrl?: string;
       };
 
@@ -266,7 +279,10 @@ export default function AddReleaseForm() {
       if (
         !prepareResponse.ok ||
         !result.success ||
-        !result.uploadUrl ||
+        !result.workerUrl ||
+        !result.key ||
+        !result.expires ||
+        !result.signature ||
         !result.publicUrl
       ) {
         throw new Error(
@@ -276,25 +292,54 @@ export default function AddReleaseForm() {
       }
 
       const uploadResponse = await fetch(
-        result.uploadUrl,
+        result.workerUrl,
         {
           method: "PUT",
           headers: {
             "Content-Type": file.type,
+            "X-Upload-Key": result.key,
+            "X-Upload-Expires":
+              String(result.expires),
+            "X-Upload-Signature":
+              result.signature,
           },
           body: file,
         }
       );
 
-      if (!uploadResponse.ok) {
+      const uploadText =
+        await uploadResponse.text();
+
+      let uploadResult: {
+        success?: boolean;
+        message?: string;
+        url?: string;
+      };
+
+      try {
+        uploadResult = JSON.parse(uploadText);
+      } catch {
         throw new Error(
-          "Audio Could Not Be Uploaded To R2."
+          uploadText ||
+            "Audio Could Not Be Uploaded."
+        );
+      }
+
+      if (
+        !uploadResponse.ok ||
+        !uploadResult.success
+      ) {
+        throw new Error(
+          uploadResult.message ||
+            "Audio Could Not Be Uploaded To R2."
         );
       }
 
       setForm((current) => ({
         ...current,
-        audio_url: result.publicUrl!,
+        audio_url:
+          uploadResult.url ||
+          result.publicUrl!,
       }));
 
       alert("Audio Uploaded Successfully.");
