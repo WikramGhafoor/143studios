@@ -212,50 +212,108 @@ export default function AddReleaseForm() {
   }
 
   async function uploadAudio(
-  event: React.ChangeEvent<HTMLInputElement>
-) {
-  const file = event.target.files?.[0];
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = event.target.files?.[0];
 
-  if (!file) return;
-
-  if (!file.type.startsWith("audio/")) {
-    alert("Please Select A Valid Audio File.");
-    return;
-  }
-
-  setUploading(true);
-
-  try {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await fetch(
-      "/api/admin/upload-audio",
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
-
-    const result = await response.json();
-
-    if (!result.success) {
-      alert(result.message);
+    if (!file) {
       return;
     }
 
-    setForm((current) => ({
-      ...current,
-      audio_url: result.url,
-    }));
-  } catch (error) {
-    console.error(error);
-    alert("Audio Upload Failed.");
-  } finally {
-    setUploading(false);
-    event.target.value = "";
+    if (!file.type.startsWith("audio/")) {
+      alert("Please Select A Valid Audio File.");
+      event.target.value = "";
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const prepareResponse = await fetch(
+        "/api/admin/upload-audio",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+          }),
+        }
+      );
+
+      const prepareText =
+        await prepareResponse.text();
+
+      let result: {
+        success?: boolean;
+        message?: string;
+        uploadUrl?: string;
+        publicUrl?: string;
+      };
+
+      try {
+        result = JSON.parse(prepareText);
+      } catch {
+        throw new Error(
+          prepareText ||
+            "Upload Preparation Failed."
+        );
+      }
+
+      if (
+        !prepareResponse.ok ||
+        !result.success ||
+        !result.uploadUrl ||
+        !result.publicUrl
+      ) {
+        throw new Error(
+          result.message ||
+            "Upload Preparation Failed."
+        );
+      }
+
+      const uploadResponse = await fetch(
+        result.uploadUrl,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": file.type,
+          },
+          body: file,
+        }
+      );
+
+      if (!uploadResponse.ok) {
+        throw new Error(
+          "Audio Could Not Be Uploaded To R2."
+        );
+      }
+
+      setForm((current) => ({
+        ...current,
+        audio_url: result.publicUrl!,
+      }));
+
+      alert("Audio Uploaded Successfully.");
+    } catch (error) {
+      console.error(
+        "Audio Upload Error:",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Audio Upload Failed."
+      );
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
   }
-}
 
   async function saveRelease(
     event: React.FormEvent<HTMLFormElement>
@@ -538,48 +596,36 @@ export default function AddReleaseForm() {
 
           <div>
             <p className="mb-3 font-bold">
-  Audio File
-</p>
+              Audio File
+            </p>
 
-<input
-  type="file"
-  accept="audio/*"
-  disabled={uploading}
-  onChange={uploadAudio}
-  className={inputClass}
-/>
+            <input
+              type="file"
+              accept="audio/*"
+              disabled={uploading}
+              onChange={uploadAudio}
+              className={inputClass}
+            />
 
-{uploading && (
-  <p className="mt-3 text-yellow-400">
-    Uploading Audio...
-  </p>
-)}
-
-{form.audio_url && (
-  <>
-    <p className="mt-4 text-green-400 break-all">
-      Audio Uploaded Successfully
-    </p>
-
-    <audio
-      controls
-      preload="none"
-      src={form.audio_url}
-      className="mt-4 w-full"
-    />
-  </>
-)}
+            {uploading && (
+              <p className="mt-3 text-yellow-400">
+                Uploading Audio...
+              </p>
+            )}
 
             {form.audio_url && (
-              <audio
-                controls
-                preload="none"
-                src={form.audio_url}
-                className="mt-5 w-full"
-              >
-                Your Browser Does Not Support Audio
-                Playback.
-              </audio>
+              <>
+                <p className="mt-4 break-all text-green-400">
+                  Audio Uploaded Successfully
+                </p>
+
+                <audio
+                  controls
+                  preload="none"
+                  src={form.audio_url}
+                  className="mt-4 w-full"
+                />
+              </>
             )}
           </div>
         </div>
