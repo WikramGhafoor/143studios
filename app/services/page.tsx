@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getSitePage } from "@/lib/site-pages";
+import { getSitePageServer } from "@/lib/site-pages-server";
+
+export const dynamic = "force-dynamic";
 import {
   FaBullhorn,
   FaCompactDisc,
@@ -19,6 +21,9 @@ export const metadata: Metadata = {
   title: "Services",
   description:
     "Explore Record Label, Music Production, Artist Management, Music Distribution, Publishing, Branding And Digital Media Services From 143 Studios.",
+  alternates: {
+    canonical: "https://143studios.online/services",
+  },
 };
 
 type ServiceItem = {
@@ -140,7 +145,7 @@ const defaultServicesContent: ServicesPageContent = {
 };
 
 export default async function ServicesPage() {
-  const savedContent = await getSitePage("services");
+  const savedContent = await getSitePageServer("services");
 
   const content: ServicesPageContent = {
     ...defaultServicesContent,

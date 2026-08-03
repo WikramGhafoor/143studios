@@ -30,7 +30,13 @@ function isActiveRoute(
   );
 }
 
-export default function Header() {
+export default function Header({
+  companyName = "143 Studios",
+  logoUrl = "/logo.png",
+}: {
+  companyName?: string;
+  logoUrl?: string;
+}) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -65,12 +71,12 @@ export default function Header() {
         <Link
           href="/"
           onClick={closeMenu}
-          aria-label="143 Studios Home"
+          aria-label={`${companyName} Home`}
           className="group flex min-w-0 items-center gap-3 sm:gap-4"
         >
           <Image
-            src="/logo.png"
-            alt="143 Studios Logo"
+            src={logoUrl}
+            alt={`${companyName} Logo`}
             width={60}
             height={60}
             priority
@@ -80,7 +86,7 @@ export default function Header() {
 
           <div className="min-w-0">
             <div className="truncate text-xl font-black text-white sm:text-2xl">
-              143 Studios
+              {companyName}
             </div>
 
             <p className="mt-1 hidden text-sm font-semibold tracking-wide text-red-500 sm:block">

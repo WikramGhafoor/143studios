@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { publicArtistSlug } from "@/lib/public-slugs";
 
 type ArtistCardProps = {
   artist: {
@@ -19,7 +20,7 @@ export default function ArtistCard({
 }: ArtistCardProps) {
   return (
     <Link
-      href={`/artists/${artist.slug}`}
+      href={`/artists/${publicArtistSlug(artist.slug)}`}
       aria-label={`View ${artist.stageName} Profile`}
       className="group flex h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
     >
@@ -56,9 +57,11 @@ export default function ArtistCard({
             {artist.stageName}
           </h3>
 
-          <p className="mt-2 break-words text-gray-400">
-            {artist.artistType}
-          </p>
+          {artist.artistType && (
+            <p className="mt-2 break-words text-gray-400">
+              {artist.artistType}
+            </p>
+          )}
 
           {artist.genres.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">

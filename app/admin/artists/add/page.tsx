@@ -1,9 +1,39 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
+import { cleanSlug, optionalTitle, titleCase } from "@/lib/text-format";
+
+const artistOptions = {
+  artist_type: [
+    "Single Artist (Solo)", "Double Artist (Duo)", "Triple Artist (Trio)",
+    "Quartet (4 Members)", "Quintet (5 Members)", "Sextet (6 Members)",
+    "Septet (7 Members)", "Octet (8 Members)", "Nonet (9 Members)",
+    "Band", "Music Group", "Choir", "Orchestra", "Singer", "Rapper",
+    "Singer/Rapper", "Songwriter", "Composer", "Lyricist", "Producer",
+    "DJ", "Instrumentalist", "Vocalist", "Musician", "Performer",
+    "Writer/Composer/Singer/Rapper/Producer",
+  ],
+  genre: [
+    "Alternative", "Ambient", "Blues", "Classical", "Country", "Dance",
+    "Electronic", "Folk", "Ghazal", "Hip-Hop", "Hip-Hop/Rap", "Indie",
+    "Instrumental", "Jazz", "Lo-Fi", "Nasheed", "Pop", "Punjabi",
+    "Qawwali", "R&B", "Rap", "Rock", "Sad", "Sufi", "World",
+  ],
+  city: [
+    "Faisalabad", "Gujranwala", "Islamabad", "Karachi", "Lahore",
+    "Multan", "Peshawar", "Quetta", "Rawalpindi", "Sheikhupura", "Sialkot",
+  ],
+  country: [
+    "Pakistan", "India", "Bangladesh", "United Arab Emirates", "Saudi Arabia",
+    "United Kingdom", "United States", "Canada", "Australia", "Germany",
+  ],
+} as const;
+
+type ArtistOptionField = keyof typeof artistOptions;
 
 export default function AddArtistPage() {
   const router = useRouter();
@@ -12,6 +42,12 @@ export default function AddArtistPage() {
   const [uploadingField, setUploadingField] = useState<
     "image" | "banner" | null
   >(null);
+  const [otherFields, setOtherFields] = useState<Record<ArtistOptionField, boolean>>({
+    artist_type: false,
+    genre: false,
+    city: false,
+    country: false,
+  });
 
   const [form, setForm] = useState({
     artist_code: "",
@@ -48,8 +84,15 @@ export default function AddArtistPage() {
 
     setForm((currentForm) => ({
       ...currentForm,
-      [name]: value,
+      [name]: name === "stage_name" ? titleCase(value) : value,
+      ...(name === "stage_name" ? { slug: cleanSlug(value) } : {}),
     }));
+  }
+
+  function handleOption(field: ArtistOptionField, value: string) {
+    const isOther = value === "Other";
+    setOtherFields((current) => ({ ...current, [field]: isOther }));
+    setForm((current) => ({ ...current, [field]: isOther ? "" : value }));
   }
 
   async function handleImageUpload(
@@ -68,7 +111,10 @@ export default function AddArtistPage() {
     setUploadingField(field);
 
     try {
-      const url = await uploadToCloudinary(file);
+      const url = await uploadToCloudinary(
+        file,
+        `${form.stage_name || "artist"}-${field}`
+      );
 
       if (!url) {
         alert("Image upload failed");
@@ -103,24 +149,21 @@ export default function AddArtistPage() {
       return;
     }
 
-    if (!form.slug.trim()) {
-      alert("Slug is required");
-      return;
-    }
-
     setLoading(true);
+
+    const generatedSlug = cleanSlug(form.stage_name);
 
     const payload = {
       artist_code: form.artist_code.trim(),
-      stage_name: form.stage_name.trim(),
-      artist_type: form.artist_type.trim(),
-      genre: form.genre.trim(),
-      city: form.city.trim(),
-      country: form.country.trim(),
-      bio: form.bio.trim(),
+      stage_name: titleCase(form.stage_name),
+      artist_type: optionalTitle(form.artist_type),
+      genre: optionalTitle(form.genre),
+      city: optionalTitle(form.city),
+      country: optionalTitle(form.country),
+      bio: form.bio.trim() || null,
       image: form.image || null,
       banner: form.banner || null,
-      slug: form.slug.trim(),
+      slug: generatedSlug,
       status: form.status,
       spotify: form.spotify.trim() || null,
       apple_music: form.apple_music.trim() || null,
@@ -133,7 +176,7 @@ export default function AddArtistPage() {
       verified: form.verified,
       featured: form.featured,
       sort_order: Number(form.sort_order) || 0,
-      real_name: form.real_name.trim() || null,
+      real_name: optionalTitle(form.real_name),
       updated_at: new Date().toISOString(),
     };
 
@@ -205,44 +248,37 @@ export default function AddArtistPage() {
                 className={inputClass}
               />
 
-              <input
-                name="artist_type"
-                value={form.artist_type}
-                onChange={handleChange}
-                placeholder="Artist Type — Singer / Rapper / Producer"
-                className={inputClass}
-              />
-
-              <input
-                name="genre"
-                value={form.genre}
-                onChange={handleChange}
-                placeholder="Genre"
-                className={inputClass}
-              />
-
-              <input
-                name="city"
-                value={form.city}
-                onChange={handleChange}
-                placeholder="City"
-                className={inputClass}
-              />
-
-              <input
-                name="country"
-                value={form.country}
-                onChange={handleChange}
-                placeholder="Country"
-                className={inputClass}
-              />
+              {(["artist_type", "genre", "city", "country"] as ArtistOptionField[]).map((field) => (
+                <div key={field}>
+                  <select
+                    value={otherFields[field] ? "Other" : form[field]}
+                    onChange={(event) => handleOption(field, event.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="">Select {titleCase(field.replace("_", " "))}</option>
+                    {artistOptions[field].map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                    <option value="Other">Other</option>
+                  </select>
+                  {otherFields[field] && (
+                    <input
+                      name={field}
+                      value={form[field]}
+                      onChange={handleChange}
+                      placeholder={`Enter Other ${titleCase(field.replace("_", " "))}`}
+                      className={`${inputClass} mt-3`}
+                    />
+                  )}
+                </div>
+              ))}
 
               <input
                 name="slug"
                 value={form.slug}
                 onChange={handleChange}
                 placeholder="Slug — artist-stage-name"
-                required
+                readOnly
                 className={inputClass}
               />
             </div>
@@ -286,9 +322,12 @@ export default function AddArtistPage() {
                 )}
 
                 {form.image && (
-                  <img
+                  <Image
                     src={form.image}
                     alt="Artist profile preview"
+                    width={224}
+                    height={224}
+                    unoptimized
                     className="mt-4 h-56 w-56 rounded-2xl object-cover"
                   />
                 )}
@@ -316,9 +355,12 @@ export default function AddArtistPage() {
                 )}
 
                 {form.banner && (
-                  <img
+                  <Image
                     src={form.banner}
                     alt="Artist banner preview"
+                    width={1200}
+                    height={224}
+                    unoptimized
                     className="mt-4 h-56 w-full rounded-2xl object-cover"
                   />
                 )}

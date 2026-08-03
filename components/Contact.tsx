@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSitePage } from "@/lib/site-pages";
+import { getSitePageServer } from "@/lib/site-pages-server";
 import {
   FaEnvelope,
   FaWhatsapp,
@@ -30,7 +30,7 @@ type HomepageContactContent = {
 
 export default async function Contact() {
   const savedContent =
-    await getSitePage("homepage");
+    await getSitePageServer("homepage");
 
   const content =
     (savedContent as HomepageContactContent | null) ??

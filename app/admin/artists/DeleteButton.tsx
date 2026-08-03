@@ -34,8 +34,10 @@ export default function DeleteButton({ id }: { id: string }) {
 
   return (
     <button
-  className="rounded-lg border border-red-600 px-4 py-2 font-semibold text-red-500 transition-all duration-200 hover:bg-red-600 hover:text-white"
->
+      type="button"
+      onClick={handleDelete}
+      className="rounded-lg border border-red-600 px-4 py-2 font-semibold text-red-500 transition-all duration-200 hover:bg-red-600 hover:text-white"
+    >
   Delete
 </button>
   );

@@ -1,4 +1,4 @@
-import AddReleaseForm from "@/components/AddReleaseForm";
+import AddReleaseForm from "@/components/AddReleaseFormV2";
 
 export const metadata = {
   title: "Add Release | 143 Studios CMS",

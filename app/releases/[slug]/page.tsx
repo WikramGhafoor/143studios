@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { notFound, permanentRedirect } from "next/navigation";
+import { createServerSupabaseClient } from "@/lib/site-pages-server";
+import { publicArtistSlug } from "@/lib/public-slugs";
 import { FaSpotify, FaYoutube } from "react-icons/fa";
 import {
   SiApplemusic,
@@ -15,6 +16,22 @@ type PageProps = {
     slug: string;
   }>;
 };
+
+const legacyReleaseSlugs: Record<string, string> = {
+  r_k: "taqila",
+};
+
+function getCanonicalReleaseSlug(slug: string): string {
+  return legacyReleaseSlugs[slug] || slug;
+}
+
+function getReleaseDatabaseSlugs(slug: string): string[] {
+  const canonical = getCanonicalReleaseSlug(slug);
+  const legacy = Object.entries(legacyReleaseSlugs)
+    .find(([, value]) => value === canonical)?.[0];
+
+  return Array.from(new Set([canonical, legacy].filter(Boolean) as string[]));
+}
 
 type ReleaseArtist = {
   id: number;
@@ -53,6 +70,9 @@ type Release = {
   apple_music: string | null;
   youtube: string | null;
   youtube_music: string | null;
+  song_type: string | null;
+  content_advisory: string | null;
+  subgenre: string | null;
   artists: ReleaseArtist | ReleaseArtist[] | null;
 };
 
@@ -137,6 +157,14 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
+  const supabase = createServerSupabaseClient();
+
+  if (!supabase) {
+    return {
+      title: "Release Not Found",
+      robots: { index: false, follow: false },
+    };
+  }
 
   const { data, error } = await supabase
     .from("releases")
@@ -151,8 +179,9 @@ export async function generateMetadata({
         status
       )
     `)
-    .eq("slug", slug)
+    .in("slug", getReleaseDatabaseSlugs(slug))
     .eq("status", "active")
+    .limit(1)
     .maybeSingle();
 
   if (error || !data) {
@@ -199,7 +228,7 @@ export async function generateMetadata({
   );
 
   const image = data.cover || "/og-image.jpg";
-  const canonicalUrl = `https://143studios.online/releases/${slug}`;
+  const canonicalUrl = `https://143studios.online/releases/${getCanonicalReleaseSlug(slug)}`;
 
   return {
     title,
@@ -237,6 +266,15 @@ export default async function ReleasePage({
 }: PageProps) {
   const { slug } = await params;
 
+  if (legacyReleaseSlugs[slug]) {
+    permanentRedirect(`/releases/${legacyReleaseSlugs[slug]}`);
+  }
+  const supabase = createServerSupabaseClient();
+
+  if (!supabase) {
+    notFound();
+  }
+
   const { data, error } = await supabase
     .from("releases")
     .select(`
@@ -266,6 +304,9 @@ export default async function ReleasePage({
       apple_music,
       youtube,
       youtube_music,
+      song_type,
+      content_advisory,
+      subgenre,
       artists (
         id,
         artist_code,
@@ -276,8 +317,9 @@ export default async function ReleasePage({
         status
       )
     `)
-    .eq("slug", slug)
+    .in("slug", getReleaseDatabaseSlugs(slug))
     .eq("status", "active")
+    .limit(1)
     .maybeSingle();
 
   if (error || !data) {
@@ -298,7 +340,7 @@ export default async function ReleasePage({
     artist.stage_name?.trim() || "Unknown Artist";
 
   const artistHref = artist.slug
-    ? `/artists/${artist.slug}`
+    ? `/artists/${publicArtistSlug(artist.slug)}`
     : null;
 
   const formattedDate = formatDate(
@@ -346,8 +388,36 @@ export default async function ReleasePage({
     }
   }
 
+  const recordingStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "MusicRecording",
+    name: releaseTitle,
+    url: `https://143studios.online/releases/${getCanonicalReleaseSlug(release.slug || slug)}`,
+    image: release.cover || undefined,
+    datePublished: release.release_date || undefined,
+    duration: release.duration || undefined,
+    genre: [release.genre, release.subgenre].filter(Boolean),
+    byArtist: {
+      "@type": "MusicGroup",
+      name: artistName,
+      url: artistHref
+        ? `https://143studios.online${artistHref}`
+        : undefined,
+    },
+    recordingOf: release.song_type
+      ? { "@type": "MusicComposition", name: release.song_type }
+      : undefined,
+    isrcCode: release.isrc || undefined,
+  };
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-black text-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(recordingStructuredData).replace(/</g, "\\u003c"),
+        }}
+      />
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
         <div className="grid gap-12 lg:grid-cols-2">
           {/* Cover */}
@@ -373,10 +443,11 @@ export default async function ReleasePage({
           {/* Release Information */}
           <div className="flex min-w-0 flex-col justify-center">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="rounded-full bg-red-600 px-4 py-2 text-sm font-bold">
-                {release.release_type?.trim() ||
-                  "Release"}
-              </span>
+              {release.release_type?.trim() && (
+                <span className="rounded-full bg-red-600 px-4 py-2 text-sm font-bold">
+                  {release.release_type.trim()}
+                </span>
+              )}
 
               {release.version && (
                 <span className="rounded-full border border-red-700 px-4 py-2 text-sm font-bold text-red-400">
@@ -434,6 +505,27 @@ export default async function ReleasePage({
                 <InfoCard
                   label="Genre"
                   value={release.genre}
+                />
+              )}
+
+              {release.subgenre && (
+                <InfoCard
+                  label="Subgenre"
+                  value={release.subgenre}
+                />
+              )}
+
+              {release.song_type && (
+                <InfoCard
+                  label="Song Type"
+                  value={release.song_type}
+                />
+              )}
+
+              {release.content_advisory && (
+                <InfoCard
+                  label="Content Advisory"
+                  value={release.content_advisory}
                 />
               )}
 
@@ -609,7 +701,7 @@ export default async function ReleasePage({
                   "Untitled Release";
 
                 const itemHref = item.slug
-                  ? `/releases/${item.slug}`
+                  ? `/releases/${getCanonicalReleaseSlug(item.slug)}`
                   : null;
 
                 const itemDate = formatDate(
@@ -645,10 +737,11 @@ export default async function ReleasePage({
                         {itemTitle}
                       </h3>
 
-                      <p className="mt-2 text-red-500">
-                        {item.release_type?.trim() ||
-                          "Release"}
-                      </p>
+                      {item.release_type?.trim() && (
+                        <p className="mt-2 text-red-500">
+                          {item.release_type.trim()}
+                        </p>
+                      )}
 
                       {itemDate && (
                         <p className="mt-2 text-sm text-gray-400">

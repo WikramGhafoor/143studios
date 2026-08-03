@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+import { createServerSupabaseClient } from "@/lib/site-pages-server";
+import { formatPublicText } from "@/lib/format-content";
+import { publicArtistSlug } from "@/lib/public-slugs";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +11,9 @@ export const metadata: Metadata = {
   title: "Artists",
   description:
     "Meet The Official Artists Of 143 Studios And Explore Their Profiles, Music And Creative Work.",
+  alternates: {
+    canonical: "https://143studios.online/artists",
+  },
 };
 
 type Artist = {
@@ -27,7 +32,7 @@ type Artist = {
 
 function getArtistHref(artist: Artist) {
   return artist.slug
-    ? `/artists/${artist.slug}`
+    ? `/artists/${publicArtistSlug(artist.slug)}`
     : `/artists/${artist.id}`;
 }
 
@@ -38,6 +43,12 @@ function getArtistLocation(artist: Artist) {
 }
 
 export default async function ArtistsPage() {
+  const supabase = createServerSupabaseClient();
+
+  if (!supabase) {
+    throw new Error("Supabase Environment Variables Are Missing.");
+  }
+
   const { data, error } = await supabase
     .from("artists")
     .select(
@@ -119,7 +130,9 @@ export default async function ArtistsPage() {
                 artist.stage_name?.trim() || "Unnamed Artist";
 
               const artistType =
-                artist.artist_type?.trim() || "Artist";
+                artist.artist_type?.trim()
+                  ? formatPublicText(artist.artist_type.trim())
+                  : "Artist";
 
               const artistLocation =
                 getArtistLocation(artist);
@@ -168,7 +181,7 @@ export default async function ArtistsPage() {
 
                       {artist.genre && (
                         <p className="mt-2 break-words text-gray-400">
-                          {artist.genre}
+                          {formatPublicText(artist.genre)}
                         </p>
                       )}
 
@@ -180,7 +193,7 @@ export default async function ArtistsPage() {
 
                       {artist.bio && (
                         <p className="mt-4 line-clamp-4 leading-7 text-gray-300">
-                          {artist.bio}
+                          {formatPublicText(artist.bio)}
                         </p>
                       )}
 

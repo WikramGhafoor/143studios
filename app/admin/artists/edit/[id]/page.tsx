@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import EditArtistForm from "@/components/EditArtistForm";
+import EditArtistForm from "@/components/EditArtistFormV2";
 
 export default async function EditArtistPage({
   params,

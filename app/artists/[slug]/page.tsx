@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { notFound, permanentRedirect } from "next/navigation";
+import { createServerSupabaseClient } from "@/lib/site-pages-server";
+import { formatPublicText } from "@/lib/format-content";
+import { publicReleaseSlug } from "@/lib/public-slugs";
 
 import {
   FaFacebook,
@@ -24,6 +26,22 @@ type PageProps = {
     slug: string;
   }>;
 };
+
+const legacyArtistSlugs: Record<string, string> = {
+  r_k: "rk",
+};
+
+function getCanonicalArtistSlug(slug: string): string {
+  return legacyArtistSlugs[slug] || slug;
+}
+
+function getArtistDatabaseSlugs(slug: string): string[] {
+  const canonical = getCanonicalArtistSlug(slug);
+  const legacy = Object.entries(legacyArtistSlugs)
+    .find(([, value]) => value === canonical)?.[0];
+
+  return Array.from(new Set([canonical, legacy].filter(Boolean) as string[]));
+}
 
 type Artist = {
   id: number;
@@ -136,6 +154,14 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
+  const supabase = createServerSupabaseClient();
+
+  if (!supabase) {
+    return {
+      title: "Artist Not Found",
+      robots: { index: false, follow: false },
+    };
+  }
 
   const { data, error } = await supabase
     .from("artists")
@@ -148,8 +174,9 @@ export async function generateMetadata({
       slug,
       status
     `)
-    .eq("slug", slug)
+    .in("slug", getArtistDatabaseSlugs(slug))
     .eq("status", "active")
+    .limit(1)
     .maybeSingle();
 
   if (error || !data) {
@@ -175,7 +202,7 @@ export async function generateMetadata({
   const image = data.image || "/og-image.jpg";
 
   const canonicalUrl =
-    `https://143studios.online/artists/${data.slug}`;
+    `https://143studios.online/artists/${getCanonicalArtistSlug(data.slug)}`;
 
   return {
     title: artistName,
@@ -222,6 +249,15 @@ export default async function ArtistProfilePage({
 }: PageProps) {
   const { slug } = await params;
 
+  if (legacyArtistSlugs[slug]) {
+    permanentRedirect(`/artists/${legacyArtistSlugs[slug]}`);
+  }
+  const supabase = createServerSupabaseClient();
+
+  if (!supabase) {
+    notFound();
+  }
+
   const { data, error: artistError } =
     await supabase
       .from("artists")
@@ -251,8 +287,9 @@ export default async function ArtistProfilePage({
         featured,
         real_name
       `)
-      .eq("slug", slug)
+      .in("slug", getArtistDatabaseSlugs(slug))
       .eq("status", "active")
+      .limit(1)
       .maybeSingle();
 
   if (artistError || !data) {
@@ -306,12 +343,14 @@ export default async function ArtistProfilePage({
     artist.stage_name?.trim() || "Unnamed Artist";
 
   const artistType =
-    artist.artist_type?.trim() || "Artist";
+    artist.artist_type?.trim()
+      ? formatPublicText(artist.artist_type.trim())
+      : null;
 
   const genres = artist.genre
     ? artist.genre
         .split(",")
-        .map((genre) => genre.trim())
+        .map((genre) => formatPublicText(genre.trim()))
         .filter(Boolean)
     : [];
 
@@ -337,8 +376,39 @@ export default async function ArtistProfilePage({
     artist.website,
   ].some(isSafeExternalUrl);
 
+  const artistStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "MusicGroup",
+    name: artistName,
+    url: `https://143studios.online/artists/${getCanonicalArtistSlug(artist.slug || slug)}`,
+    image: artist.image || undefined,
+    description: artist.bio ? formatPublicText(artist.bio) : undefined,
+    genre: genres,
+    sameAs: [
+      artist.spotify,
+      artist.apple_music,
+      artist.youtube,
+      artist.youtube_music,
+      artist.instagram,
+      artist.facebook,
+      artist.tiktok,
+      artist.website,
+    ].filter(isSafeExternalUrl),
+    memberOf: {
+      "@type": "Organization",
+      name: "143 Studios",
+      url: "https://143studios.online",
+    },
+  };
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-black text-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(artistStructuredData).replace(/</g, "\\u003c"),
+        }}
+      />
       {/* Banner */}
       <section className="relative h-[360px] w-full overflow-hidden sm:h-[420px]">
         {artist.banner ? (
@@ -416,15 +486,17 @@ export default async function ArtistProfilePage({
               {artistName}
             </h1>
 
-            <p className="mt-4 break-words text-2xl font-semibold text-red-500">
-              {artistType}
-            </p>
+            {artistType && (
+              <p className="mt-4 break-words text-2xl font-semibold text-red-500">
+                {artistType}
+              </p>
+            )}
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               {artist.real_name && (
                 <InfoCard
                   label="Real Name"
-                  value={artist.real_name}
+                  value={formatPublicText(artist.real_name)}
                 />
               )}
 
@@ -475,7 +547,7 @@ export default async function ArtistProfilePage({
         {artist.bio && (
           <ContentSection title="Biography">
             <p className="whitespace-pre-line text-lg leading-8 text-gray-300">
-              {artist.bio}
+              {formatPublicText(artist.bio)}
             </p>
           </ContentSection>
         )}
@@ -594,7 +666,7 @@ export default async function ArtistProfilePage({
                   "Untitled Release";
 
                 const releaseHref = release.slug
-                  ? `/releases/${release.slug}`
+                  ? `/releases/${publicReleaseSlug(release.slug)}`
                   : null;
 
                 const releaseDate = formatDate(
@@ -646,10 +718,11 @@ export default async function ArtistProfilePage({
                         </h3>
                       )}
 
-                      <p className="mt-2 text-red-500">
-                        {release.release_type?.trim() ||
-                          "Release"}
-                      </p>
+                      {release.release_type?.trim() && (
+                        <p className="mt-2 text-red-500">
+                          {release.release_type.trim()}
+                        </p>
+                      )}
 
                       {releaseDate && (
                         <p className="mt-2 text-sm text-gray-400">

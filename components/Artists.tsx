@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+import { createServerSupabaseClient } from "@/lib/site-pages-server";
+import { formatPublicText } from "@/lib/format-content";
 import ArtistCard from "./ArtistCard";
 
 type FeaturedArtist = {
@@ -18,6 +19,12 @@ type FeaturedArtistWithSlug = FeaturedArtist & {
 };
 
 export default async function Artists() {
+  const supabase = createServerSupabaseClient();
+
+  if (!supabase) {
+    return null;
+  }
+
   const { data, error } = await supabase
     .from("artists")
     .select(`
@@ -99,13 +106,15 @@ export default async function Artists() {
             const genres = artist.genre
               ? artist.genre
                   .split(",")
-                  .map((item) => item.trim())
+                  .map((item) => formatPublicText(item.trim()))
                   .filter(Boolean)
               : [];
 
             const cleanBio = artist.bio
-              ?.replace(/\s+/g, " ")
-              .trim();
+              ? formatPublicText(artist.bio)
+              .replace(/\s+/g, " ")
+              .trim()
+              : undefined;
 
             const tagline = cleanBio
               ? cleanBio.length > 90
@@ -123,8 +132,9 @@ export default async function Artists() {
                     artist.stage_name?.trim() ||
                     "Unnamed Artist",
                   artistType:
-                    artist.artist_type?.trim() ||
-                    "Artist",
+                    artist.artist_type?.trim()
+                      ? formatPublicText(artist.artist_type.trim())
+                      : "",
                   genres,
                   image: artist.image || "",
                   tagline,

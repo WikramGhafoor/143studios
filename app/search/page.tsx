@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { publicArtistSlug, publicReleaseSlug } from "@/lib/public-slugs";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,9 @@ export const metadata: Metadata = {
   robots: {
     index: false,
     follow: true,
+  },
+  alternates: {
+    canonical: "https://143studios.online/search",
   },
 };
 
@@ -349,7 +353,7 @@ export default async function SearchPage({
                       "Unnamed Artist";
 
                     const artistHref = artist.slug
-                      ? `/artists/${artist.slug}`
+                      ? `/artists/${publicArtistSlug(artist.slug)}`
                       : null;
 
                     const cardContent = (
@@ -456,7 +460,7 @@ export default async function SearchPage({
                       "Untitled Release";
 
                     const releaseHref = release.slug
-                      ? `/releases/${release.slug}`
+                      ? `/releases/${publicReleaseSlug(release.slug)}`
                       : null;
 
                     const releaseDate = formatDate(

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+import { createServerSupabaseClient } from "@/lib/site-pages-server";
+import { publicReleaseSlug } from "@/lib/public-slugs";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,9 @@ export const metadata: Metadata = {
   title: "Releases",
   description:
     "Explore Official Singles, Albums, EPs And Music Releases From 143 Studios And Its Artists.",
+  alternates: {
+    canonical: "https://143studios.online/releases",
+  },
 };
 
 type ReleaseArtist = {
@@ -83,6 +87,12 @@ function isSafeExternalUrl(url: string | null): url is string {
 }
 
 export default async function ReleasesPage() {
+  const supabase = createServerSupabaseClient();
+
+  if (!supabase) {
+    throw new Error("Supabase Environment Variables Are Missing.");
+  }
+
   const { data, error } = await supabase
     .from("releases")
     .select(`
@@ -184,7 +194,7 @@ export default async function ReleasesPage() {
               );
 
               const releaseHref = release.slug
-                ? `/releases/${release.slug}`
+                ? `/releases/${publicReleaseSlug(release.slug)}`
                 : null;
 
               return (
@@ -253,10 +263,9 @@ export default async function ReleasesPage() {
                     </div>
 
                     <div className="mt-4 space-y-1 text-sm text-gray-400">
-                      <p>
-                        {release.release_type?.trim() ||
-                          "Release"}
-                      </p>
+                      {release.release_type?.trim() && (
+                        <p>{release.release_type.trim()}</p>
+                      )}
 
                       {formattedDate && (
                         <p>{formattedDate}</p>

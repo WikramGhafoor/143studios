@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { getSitePage } from "@/lib/site-pages";
+import { getSitePageServer } from "@/lib/site-pages-server";
+
+export const dynamic = "force-dynamic";
 import InquiryForm from "@/components/InquiryForm";
 import {
   FaEnvelope,
@@ -66,7 +68,7 @@ const defaultContactContent: ContactPageContent = {
 };
 
 async function getContactContent(): Promise<ContactPageContent> {
-  const savedContent = await getSitePage("contact");
+  const savedContent = await getSitePageServer("contact");
 
   return {
     ...defaultContactContent,
@@ -80,6 +82,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: content.metadata_title,
     description: content.metadata_description,
+    alternates: {
+      canonical: "https://143studios.online/contact",
+    },
   };
 }
 

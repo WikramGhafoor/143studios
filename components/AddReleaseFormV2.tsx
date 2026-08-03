@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
@@ -12,38 +12,37 @@ type Artist = {
   stage_name: string | null;
 };
 
-type Release = {
-  id: number;
-  release_code: string | null;
-  title: string | null;
-  slug: string | null;
-  artist_id: number | null;
-  release_type: string | null;
-  version: string | null;
-  genre: string | null;
-  language: string | null;
-  release_date: string | null;
-  cover: string | null;
-  audio_url: string | null;
-  duration: string | null;
-  upc: string | null;
-  isrc: string | null;
-  label: string | null;
-  copyright_c: string | null;
-  copyright_p: string | null;
-  description: string | null;
-  lyrics: string | null;
-  credits: string | null;
-  status: string | null;
-  featured: boolean | null;
-  sort_order: number | null;
-  spotify: string | null;
-  apple_music: string | null;
-  youtube: string | null;
-  youtube_music: string | null;
-  song_type: string | null;
-  content_advisory: string | null;
-  subgenre: string | null;
+type ReleaseFormState = {
+  release_code: string;
+  title: string;
+  slug: string;
+  artist_id: string;
+  release_type: string;
+  song_type: string;
+  version: string;
+  genre: string;
+  subgenre: string;
+  language: string;
+  content_advisory: string;
+  release_date: string;
+  cover: string;
+  audio_url: string;
+  duration: string;
+  upc: string;
+  isrc: string;
+  label: string;
+  copyright_c: string;
+  copyright_p: string;
+  description: string;
+  lyrics: string;
+  credits: string;
+  status: string;
+  featured: boolean;
+  sort_order: number;
+  spotify: string;
+  apple_music: string;
+  youtube: string;
+  youtube_music: string;
 };
 
 type CustomField =
@@ -56,10 +55,50 @@ type CustomField =
   | "content_advisory"
   | "label";
 
-const inputClass =
-  "w-full rounded-xl border border-red-900 bg-zinc-950 p-4 text-white outline-none transition focus:border-red-600";
+type CopyrightOwner =
+  | ""
+  | "143 Studios"
+  | "Artist"
+  | "143 Studios & Artist"
+  | "Other";
 
-const fieldOptions: Record<CustomField, string[]> = {
+const initialForm: ReleaseFormState = {
+  release_code: "",
+  title: "",
+  slug: "",
+  artist_id: "",
+  release_type: "",
+  song_type: "",
+  version: "",
+  genre: "",
+  subgenre: "",
+  language: "",
+  content_advisory: "",
+  release_date: "",
+  cover: "",
+  audio_url: "",
+  duration: "",
+  upc: "",
+  isrc: "",
+  label: "143 Studios",
+  copyright_c: "",
+  copyright_p: "",
+  description: "",
+  lyrics: "",
+  credits: "",
+  status: "draft",
+  featured: false,
+  sort_order: 0,
+  spotify: "",
+  apple_music: "",
+  youtube: "",
+  youtube_music: "",
+};
+
+const inputClass =
+  "w-full rounded-xl border border-red-900 bg-zinc-950 p-4 text-white outline-none transition-colors placeholder:text-gray-500 focus:border-red-600 focus-visible:ring-2 focus-visible:ring-red-500";
+
+const options = {
   release_type: [
     "Single",
     "EP",
@@ -91,11 +130,12 @@ const fieldOptions: Record<CustomField, string[]> = {
   ],
   version: [
     "Original Version",
-    "Radio Edit",
-    "Extended Version",
     "Acoustic Version",
     "Live Version",
     "Remix Version",
+    "Radio Edit",
+    "Extended Mix",
+    "Club Mix",
     "Instrumental Version",
     "Clean Version",
     "Explicit Version",
@@ -130,20 +170,20 @@ const fieldOptions: Record<CustomField, string[]> = {
     "Instrumental",
   ],
   subgenre: [
-    "Punjabi Hip-Hop",
-    "Punjabi Rap",
-    "Desi Hip-Hop",
-    "Trap",
-    "Boom Bap",
-    "Lo-Fi Hip-Hop",
     "Alternative Pop",
     "Indie Pop",
     "Synth-Pop",
-    "Dance-Pop",
-    "Pop Rock",
-    "Soft Rock",
     "Punjabi Folk",
     "Urdu Pop",
+    "Desi Hip-Hop",
+    "Trap",
+    "Boom Bap",
+    "Lo-Fi",
+    "Dance-Pop",
+    "Electronic Pop",
+    "Soft Rock",
+    "Pop Rock",
+    "Acoustic Pop",
     "Devotional",
     "Drill",
     "Gangsta Rap",
@@ -153,8 +193,8 @@ const fieldOptions: Record<CustomField, string[]> = {
     "Folk Rock",
   ],
   language: [
-    "Punjabi",
     "Urdu",
+    "Punjabi",
     "English",
     "Hindi",
     "Saraiki",
@@ -179,110 +219,73 @@ const fieldOptions: Record<CustomField, string[]> = {
     "143 Studios",
     "Independent",
   ],
-};
+} satisfies Record<CustomField, string[]>;
 
-function isOtherValue(
-  field: CustomField,
-  value: string
-) {
-  return (
-    value !== "" &&
-    !fieldOptions[field].includes(value)
-  );
-}
-
-export default function EditReleaseForm({
-  release,
-}: {
-  release: Release;
-}) {
+export default function AddReleaseForm() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
-  const [uploadingCover, setUploadingCover] =
+  const [coverUploading, setCoverUploading] =
     useState(false);
-  const [uploadingAudio, setUploadingAudio] =
+  const [audioUploading, setAudioUploading] =
     useState(false);
   const [artistsLoading, setArtistsLoading] =
     useState(true);
+
   const [artists, setArtists] = useState<Artist[]>([]);
+  const [form, setForm] =
+    useState<ReleaseFormState>(initialForm);
 
-  const [form, setForm] = useState({
-    release_code: release.release_code || "",
-    title: release.title || "",
-    slug: release.slug || "",
-    artist_id: release.artist_id
-      ? String(release.artist_id)
-      : "",
-    release_type: release.release_type || "",
-    song_type: release.song_type || "",
-    version: release.version || "",
-    genre: release.genre || "",
-    subgenre: release.subgenre || "",
-    language: release.language || "",
-    content_advisory:
-      release.content_advisory || "",
-    release_date: release.release_date || "",
-    cover: release.cover || "",
-    audio_url: release.audio_url || "",
-    duration: release.duration || "",
-    upc: release.upc || "",
-    isrc: release.isrc || "",
-    label: release.label || "143 Studios",
-    copyright_c: release.copyright_c || "",
-    copyright_p: release.copyright_p || "",
-    description: release.description || "",
-    lyrics: release.lyrics || "",
-    credits: release.credits || "",
-    status: release.status || "draft",
-    featured: release.featured ?? false,
-    sort_order: release.sort_order ?? 0,
-    spotify: release.spotify || "",
-    apple_music: release.apple_music || "",
-    youtube: release.youtube || "",
-    youtube_music: release.youtube_music || "",
-  });
-
-  const [otherSelected, setOtherSelected] =
+  const [customSelected, setCustomSelected] =
     useState<Record<CustomField, boolean>>({
-      release_type: isOtherValue(
-        "release_type",
-        release.release_type || ""
-      ),
-      song_type: isOtherValue(
-        "song_type",
-        release.song_type || ""
-      ),
-      version: isOtherValue(
-        "version",
-        release.version || ""
-      ),
-      genre: isOtherValue(
-        "genre",
-        release.genre || ""
-      ),
-      subgenre: isOtherValue(
-        "subgenre",
-        release.subgenre || ""
-      ),
-      language: isOtherValue(
-        "language",
-        release.language || ""
-      ),
-      content_advisory: isOtherValue(
-        "content_advisory",
-        release.content_advisory || ""
-      ),
-      label: isOtherValue(
-        "label",
-        release.label || "143 Studios"
-      ),
+      release_type: false,
+      song_type: false,
+      version: false,
+      genre: false,
+      subgenre: false,
+      language: false,
+      content_advisory: false,
+      label: false,
     });
+
+  const [copyrightCOwner, setCopyrightCOwner] =
+    useState<CopyrightOwner>("143 Studios");
+
+  const [copyrightPOwner, setCopyrightPOwner] =
+    useState<CopyrightOwner>("143 Studios");
+
+  const [customCopyrightCOwner, setCustomCopyrightCOwner] =
+    useState("");
+
+  const [customCopyrightPOwner, setCustomCopyrightPOwner] =
+    useState("");
+
+  const selectedArtist = useMemo(
+    () =>
+      artists.find(
+        (artist) =>
+          String(artist.id) === form.artist_id
+      ) ?? null,
+    [artists, form.artist_id]
+  );
+
+  const artistName =
+    selectedArtist?.stage_name?.trim() || "";
+
+  const releaseYear = useMemo(() => {
+    const year = Number(
+      form.release_date.slice(0, 4)
+    );
+
+    return year > 0
+      ? year
+      : new Date().getFullYear();
+  }, [form.release_date]);
 
   useEffect(() => {
     let mounted = true;
 
-    async function loadArtists() {
+    async function fetchArtists() {
       try {
         const { data, error } = await supabase
           .from("artists")
@@ -293,7 +296,16 @@ export default function EditReleaseForm({
           });
 
         if (error) {
-          throw error;
+          console.error(
+            "Load Artists Error:",
+            error
+          );
+
+          if (mounted) {
+            setArtists([]);
+          }
+
+          return;
         }
 
         if (mounted) {
@@ -303,7 +315,7 @@ export default function EditReleaseForm({
         }
       } catch (error) {
         console.error(
-          "Load Artists Error:",
+          "Unexpected Load Artists Error:",
           error
         );
 
@@ -317,12 +329,66 @@ export default function EditReleaseForm({
       }
     }
 
-    void loadArtists();
+    void fetchArtists();
 
     return () => {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    function ownerText(
+      owner: CopyrightOwner,
+      customOwner: string
+    ) {
+      if (owner === "143 Studios") {
+        return "143 Studios";
+      }
+
+      if (owner === "Artist") {
+        return artistName;
+      }
+
+      if (owner === "143 Studios & Artist") {
+        return artistName
+          ? `143 Studios & ${artistName}`
+          : "143 Studios";
+      }
+
+      if (owner === "Other") {
+        return customOwner.trim();
+      }
+
+      return "";
+    }
+
+    const cOwner = ownerText(
+      copyrightCOwner,
+      customCopyrightCOwner
+    );
+
+    const pOwner = ownerText(
+      copyrightPOwner,
+      customCopyrightPOwner
+    );
+
+    setForm((current) => ({
+      ...current,
+      copyright_c: cOwner
+        ? `© ${releaseYear} ${cOwner}`
+        : "",
+      copyright_p: pOwner
+        ? `℗ ${releaseYear} ${pOwner}`
+        : "",
+    }));
+  }, [
+    artistName,
+    copyrightCOwner,
+    copyrightPOwner,
+    customCopyrightCOwner,
+    customCopyrightPOwner,
+    releaseYear,
+  ]);
 
   function handleChange(
     event: React.ChangeEvent<
@@ -333,31 +399,39 @@ export default function EditReleaseForm({
   ) {
     const { name, value } = event.target;
 
-    setForm((current) => ({
-      ...current,
-      [name]: name === "title" ? titleCase(value) : value,
-      ...(name === "title" ? { slug: cleanSlug(value) } : {}),
-    }));
+    setForm((current) => {
+      const next = {
+        ...current,
+        [name]: value,
+      };
+
+      if (name === "title") {
+        next.title = titleCase(value);
+        next.slug = cleanSlug(value);
+      }
+
+      return next;
+    });
   }
 
-  function handleSelectChange(
+  function handleCustomSelect(
     field: CustomField,
     value: string
   ) {
-    const selectedOther = value === "Other";
+    const isCustom = value === "Other";
 
-    setOtherSelected((current) => ({
+    setCustomSelected((current) => ({
       ...current,
-      [field]: selectedOther,
+      [field]: isCustom,
     }));
 
     setForm((current) => ({
       ...current,
-      [field]: selectedOther ? "" : value,
+      [field]: isCustom ? "" : value,
     }));
   }
 
-  function handleOtherChange(
+  function handleCustomInput(
     field: CustomField,
     value: string
   ) {
@@ -382,16 +456,14 @@ export default function EditReleaseForm({
       return;
     }
 
-    setUploadingCover(true);
+    setCoverUploading(true);
 
     try {
-      const url = await uploadToCloudinary(
-        file,
-        `${form.title || "release"}-cover`
-      );
+      const url = await uploadToCloudinary(file, `${form.title || "release"}-cover`);
 
       if (!url) {
-        throw new Error("Cover Upload Failed.");
+        alert("Cover Upload Failed.");
+        return;
       }
 
       setForm((current) => ({
@@ -399,15 +471,14 @@ export default function EditReleaseForm({
         cover: url,
       }));
     } catch (error) {
-      console.error("Cover Upload Error:", error);
-
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Cover Upload Failed."
+      console.error(
+        "Cover Upload Error:",
+        error
       );
+
+      alert("Cover Upload Failed.");
     } finally {
-      setUploadingCover(false);
+      setCoverUploading(false);
       event.target.value = "";
     }
   }
@@ -418,6 +489,22 @@ export default function EditReleaseForm({
     const file = event.target.files?.[0];
 
     if (!file) {
+      return;
+    }
+
+    if (!form.release_code.trim()) {
+      alert(
+        "Please Enter The Release Code Before Uploading Audio."
+      );
+      event.target.value = "";
+      return;
+    }
+
+    if (!form.title.trim()) {
+      alert(
+        "Please Enter The Release Title Before Uploading Audio."
+      );
+      event.target.value = "";
       return;
     }
 
@@ -437,7 +524,7 @@ export default function EditReleaseForm({
       return;
     }
 
-    setUploadingAudio(true);
+    setAudioUploading(true);
 
     try {
       const prepareResponse = await fetch(
@@ -448,8 +535,10 @@ export default function EditReleaseForm({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            releaseCode: form.release_code.trim(),
-            releaseTitle: form.title.trim(),
+            releaseCode:
+              form.release_code.trim(),
+            releaseTitle:
+              form.title.trim(),
             fileName: file.name,
             fileType: file.type,
             fileSize: file.size,
@@ -460,7 +549,7 @@ export default function EditReleaseForm({
       const prepareText =
         await prepareResponse.text();
 
-      let preparation: {
+      let result: {
         success?: boolean;
         message?: string;
         workerUrl?: string;
@@ -471,7 +560,7 @@ export default function EditReleaseForm({
       };
 
       try {
-        preparation = JSON.parse(prepareText);
+        result = JSON.parse(prepareText);
       } catch {
         throw new Error(
           prepareText ||
@@ -481,32 +570,32 @@ export default function EditReleaseForm({
 
       if (
         !prepareResponse.ok ||
-        !preparation.success ||
-        !preparation.workerUrl ||
-        !preparation.key ||
-        !preparation.expires ||
-        !preparation.signature ||
-        !preparation.publicUrl
+        !result.success ||
+        !result.workerUrl ||
+        !result.key ||
+        !result.expires ||
+        !result.signature ||
+        !result.publicUrl
       ) {
         throw new Error(
-          preparation.message ||
+          result.message ||
             "Upload Preparation Failed."
         );
       }
 
       const uploadResponse = await fetch(
-        preparation.workerUrl,
+        result.workerUrl,
         {
           method: "PUT",
           headers: {
             "Content-Type": file.type,
-            "X-Upload-Key": preparation.key,
-            "X-Upload-Expires": String(
-              preparation.expires
-            ),
+            "X-Upload-Key": result.key,
+            "X-Upload-Expires":
+              String(result.expires),
             "X-Upload-Signature":
-              preparation.signature,
-            "X-Upload-Size": String(file.size),
+              result.signature,
+            "X-Upload-Size":
+              String(file.size),
           },
           body: file,
         }
@@ -544,13 +633,15 @@ export default function EditReleaseForm({
         ...current,
         audio_url:
           uploadResult.url ||
-          preparation.publicUrl ||
-          "",
+          result.publicUrl!,
       }));
 
       alert("Audio Uploaded Successfully.");
     } catch (error) {
-      console.error("Audio Upload Error:", error);
+      console.error(
+        "Audio Upload Error:",
+        error
+      );
 
       alert(
         error instanceof Error
@@ -558,20 +649,20 @@ export default function EditReleaseForm({
           : "Audio Upload Failed."
       );
     } finally {
-      setUploadingAudio(false);
+      setAudioUploading(false);
       event.target.value = "";
     }
   }
 
-  async function updateRelease(
+  async function saveRelease(
     event: React.FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
 
     if (
       loading ||
-      uploadingCover ||
-      uploadingAudio
+      coverUploading ||
+      audioUploading
     ) {
       return;
     }
@@ -595,83 +686,106 @@ export default function EditReleaseForm({
 
     try {
       const payload = {
-        release_code: form.release_code.trim(),
+        release_code:
+          form.release_code.trim(),
         title: titleCase(form.title),
         slug: cleanSlug(form.title),
         artist_id: Number(form.artist_id),
+
         release_type: optionalTitle(form.release_type),
         version: optionalTitle(form.version),
         genre: optionalTitle(form.genre),
         language: optionalTitle(form.language),
-        release_date: form.release_date || null,
-        cover: form.cover || null,
+        release_date:
+          form.release_date || null,
+
+        cover:
+          form.cover || null,
         audio_url:
           form.audio_url.trim() || null,
-        duration: form.duration.trim() || null,
-        upc: form.upc.trim() || null,
-        isrc: form.isrc.trim() || null,
-        label: optionalTitle(form.label) || "143 Studios",
+        duration:
+          form.duration.trim() || null,
+
+        upc:
+          form.upc.trim() || null,
+        isrc:
+          form.isrc.trim() || null,
+
+        label:
+          form.label.trim() ||
+          "143 Studios",
+
         copyright_c:
           form.copyright_c.trim() || null,
         copyright_p:
           form.copyright_p.trim() || null,
+
         description:
           form.description.trim() || null,
-        lyrics: form.lyrics.trim() || null,
-        credits: form.credits.trim() || null,
+        lyrics:
+          form.lyrics.trim() || null,
+        credits:
+          form.credits.trim() || null,
+
         status: form.status,
         featured: form.featured,
         sort_order:
           Number(form.sort_order) || 0,
-        spotify: form.spotify.trim() || null,
+
+        spotify:
+          form.spotify.trim() || null,
         apple_music:
           form.apple_music.trim() || null,
-        youtube: form.youtube.trim() || null,
+        youtube:
+          form.youtube.trim() || null,
         youtube_music:
           form.youtube_music.trim() || null,
+
         song_type: optionalTitle(form.song_type),
         content_advisory: optionalTitle(form.content_advisory),
         subgenre: optionalTitle(form.subgenre),
+
         updated_at: new Date().toISOString(),
       };
 
       const { error } = await supabase
         .from("releases")
-        .update(payload)
-        .eq("id", release.id);
+        .insert([payload]);
 
       if (error) {
-        throw error;
+        console.error(
+          "Add Release Error:",
+          error
+        );
+
+        alert(error.message);
+        return;
       }
 
-      alert("Release Updated Successfully.");
+      alert("Release Added Successfully.");
 
       router.push("/admin/releases");
       router.refresh();
     } catch (error) {
       console.error(
-        "Update Release Error:",
+        "Unexpected Add Release Error:",
         error
       );
 
       alert(
-        error instanceof Error
-          ? error.message
-          : "Release Could Not Be Updated."
+        "Release Could Not Be Added. Please Try Again."
       );
     } finally {
       setLoading(false);
     }
   }
 
-  const busy =
-    loading ||
-    uploadingCover ||
-    uploadingAudio;
+  const uploading =
+    coverUploading || audioUploading;
 
   return (
     <form
-      onSubmit={updateRelease}
+      onSubmit={saveRelease}
       className="space-y-8"
     >
       <section className="rounded-2xl border border-red-900 bg-zinc-950 p-6">
@@ -731,77 +845,81 @@ export default function EditReleaseForm({
             ))}
           </select>
 
-          <CustomSelectField
+          <CustomSelect
             label="Release Type"
             field="release_type"
             value={form.release_type}
-            otherSelected={
-              otherSelected.release_type
+            customSelected={
+              customSelected.release_type
             }
-            onSelect={handleSelectChange}
-            onOtherChange={handleOtherChange}
+            onSelect={handleCustomSelect}
+            onCustomInput={handleCustomInput}
           />
 
-          <CustomSelectField
+          <CustomSelect
             label="Song Type"
             field="song_type"
             value={form.song_type}
-            otherSelected={
-              otherSelected.song_type
+            customSelected={
+              customSelected.song_type
             }
-            onSelect={handleSelectChange}
-            onOtherChange={handleOtherChange}
+            onSelect={handleCustomSelect}
+            onCustomInput={handleCustomInput}
           />
 
-          <CustomSelectField
+          <CustomSelect
             label="Version"
             field="version"
             value={form.version}
-            otherSelected={otherSelected.version}
-            onSelect={handleSelectChange}
-            onOtherChange={handleOtherChange}
+            customSelected={
+              customSelected.version
+            }
+            onSelect={handleCustomSelect}
+            onCustomInput={handleCustomInput}
           />
 
-          <CustomSelectField
+          <CustomSelect
             label="Genre"
             field="genre"
             value={form.genre}
-            otherSelected={otherSelected.genre}
-            onSelect={handleSelectChange}
-            onOtherChange={handleOtherChange}
+            customSelected={
+              customSelected.genre
+            }
+            onSelect={handleCustomSelect}
+            onCustomInput={handleCustomInput}
           />
 
-          <CustomSelectField
+          <CustomSelect
             label="Subgenre"
             field="subgenre"
             value={form.subgenre}
-            otherSelected={
-              otherSelected.subgenre
+            customSelected={
+              customSelected.subgenre
             }
-            onSelect={handleSelectChange}
-            onOtherChange={handleOtherChange}
+            onSelect={handleCustomSelect}
+            onCustomInput={handleCustomInput}
           />
 
-          <CustomSelectField
+          <CustomSelect
             label="Language"
             field="language"
             value={form.language}
-            otherSelected={
-              otherSelected.language
+            customSelected={
+              customSelected.language
             }
-            onSelect={handleSelectChange}
-            onOtherChange={handleOtherChange}
+            onSelect={handleCustomSelect}
+            onCustomInput={handleCustomInput}
           />
 
-          <CustomSelectField
+          <CustomSelect
             label="Content Advisory"
             field="content_advisory"
             value={form.content_advisory}
-            otherSelected={
-              otherSelected.content_advisory
+            customSelected={
+              customSelected.content_advisory
             }
-            onSelect={handleSelectChange}
-            onOtherChange={handleOtherChange}
+            onSelect={handleCustomSelect}
+            onCustomInput={handleCustomInput}
           />
 
           <input
@@ -836,19 +954,19 @@ export default function EditReleaseForm({
             <input
               type="file"
               accept="image/*"
-              disabled={busy}
+              disabled={uploading}
               onChange={uploadCover}
               className={inputClass}
             />
 
-            {uploadingCover && (
+            {coverUploading && (
               <p className="mt-3 text-yellow-400">
                 Uploading Cover...
               </p>
             )}
 
             {form.cover && (
-              <div className="relative mt-4 h-64 w-64 overflow-hidden rounded-2xl border border-red-900 bg-black">
+              <div className="relative mt-4 aspect-square w-full max-w-64 overflow-hidden rounded-2xl border border-red-900 bg-black">
                 <Image
                   src={form.cover}
                   alt="Release Cover Preview"
@@ -866,35 +984,38 @@ export default function EditReleaseForm({
               Audio File
             </p>
 
+            <p className="mb-3 text-sm leading-6 text-gray-400">
+              Enter The Release Code And Release
+              Title Before Uploading Audio.
+            </p>
+
             <input
               type="file"
               accept="audio/*"
-              disabled={busy}
+              disabled={uploading}
               onChange={uploadAudio}
               className={inputClass}
             />
 
-            {uploadingAudio && (
+            {audioUploading && (
               <p className="mt-3 text-yellow-400">
                 Uploading Audio...
               </p>
             )}
 
-            <input
-              name="audio_url"
-              value={form.audio_url}
-              onChange={handleChange}
-              placeholder="Audio File URL"
-              className={`${inputClass} mt-4`}
-            />
-
             {form.audio_url && (
-              <audio
-                controls
-                preload="none"
-                src={form.audio_url}
-                className="mt-5 w-full"
-              />
+              <>
+                <p className="mt-4 break-all text-green-400">
+                  Audio Uploaded Successfully
+                </p>
+
+                <audio
+                  controls
+                  preload="none"
+                  src={form.audio_url}
+                  className="mt-4 w-full"
+                />
+              </>
             )}
           </div>
         </div>
@@ -922,29 +1043,47 @@ export default function EditReleaseForm({
             className={inputClass}
           />
 
-          <CustomSelectField
+          <CustomSelect
             label="Label"
             field="label"
             value={form.label}
-            otherSelected={otherSelected.label}
-            onSelect={handleSelectChange}
-            onOtherChange={handleOtherChange}
+            customSelected={
+              customSelected.label
+            }
+            onSelect={handleCustomSelect}
+            onCustomInput={handleCustomInput}
           />
 
-          <input
-            name="copyright_c"
-            value={form.copyright_c}
-            onChange={handleChange}
-            placeholder="© Copyright Line"
-            className={inputClass}
+          <div className="hidden md:block" />
+
+          <CopyrightField
+            label="© Copyright Line"
+            value={copyrightCOwner}
+            customValue={
+              customCopyrightCOwner
+            }
+            generatedLine={form.copyright_c}
+            onValueChange={
+              setCopyrightCOwner
+            }
+            onCustomChange={
+              setCustomCopyrightCOwner
+            }
           />
 
-          <input
-            name="copyright_p"
-            value={form.copyright_p}
-            onChange={handleChange}
-            placeholder="℗ Copyright Line"
-            className={inputClass}
+          <CopyrightField
+            label="℗ Phonographic Copyright Line"
+            value={copyrightPOwner}
+            customValue={
+              customCopyrightPOwner
+            }
+            generatedLine={form.copyright_p}
+            onValueChange={
+              setCopyrightPOwner
+            }
+            onCustomChange={
+              setCustomCopyrightPOwner
+            }
           />
         </div>
       </section>
@@ -1059,7 +1198,8 @@ export default function EditReleaseForm({
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
-                featured: event.target.checked,
+                featured:
+                  event.target.checked,
               }))
             }
             className="h-5 w-5"
@@ -1074,18 +1214,22 @@ export default function EditReleaseForm({
       <div className="flex flex-wrap gap-4">
         <button
           type="submit"
-          disabled={busy || artistsLoading}
-          className="rounded-xl bg-red-600 px-10 py-4 font-bold transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={
+            loading ||
+            uploading ||
+            artistsLoading
+          }
+          className="rounded-xl bg-red-600 px-10 py-4 font-bold transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading
-            ? "Updating Release..."
-            : uploadingCover
+            ? "Saving Release..."
+            : coverUploading
               ? "Uploading Cover..."
-              : uploadingAudio
+              : audioUploading
                 ? "Uploading Audio..."
                 : artistsLoading
                   ? "Loading Artists..."
-                  : "Save Changes"}
+                  : "Save Release"}
         </button>
 
         <button
@@ -1093,8 +1237,8 @@ export default function EditReleaseForm({
           onClick={() =>
             router.push("/admin/releases")
           }
-          disabled={busy}
-          className="rounded-xl border border-zinc-700 px-10 py-4 font-bold text-gray-300 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={loading || uploading}
+          className="rounded-xl border border-zinc-700 px-10 py-4 font-bold text-gray-300 transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Cancel
         </button>
@@ -1103,44 +1247,56 @@ export default function EditReleaseForm({
   );
 }
 
-type CustomSelectFieldProps = {
+type CustomSelectProps = {
   label: string;
   field: CustomField;
   value: string;
-  otherSelected: boolean;
+  customSelected: boolean;
   onSelect: (
     field: CustomField,
     value: string
   ) => void;
-  onOtherChange: (
+  onCustomInput: (
     field: CustomField,
     value: string
   ) => void;
 };
 
-function CustomSelectField({
+function CustomSelect({
   label,
   field,
   value,
-  otherSelected,
+  customSelected,
   onSelect,
-  onOtherChange,
-}: CustomSelectFieldProps) {
+  onCustomInput,
+}: CustomSelectProps) {
   return (
     <div>
+      <label
+        htmlFor={`${field}-select`}
+        className="mb-3 block font-bold"
+      >
+        {label}
+      </label>
+
       <select
-        value={otherSelected ? "Other" : value}
+        id={`${field}-select`}
+        value={
+          customSelected ? "Other" : value
+        }
         onChange={(event) =>
-          onSelect(field, event.target.value)
+          onSelect(
+            field,
+            event.target.value
+          )
         }
         className={inputClass}
-        aria-label={label}
       >
         <option value="">
           Select {label}
         </option>
 
-        {fieldOptions[field].map((option) => (
+        {options[field].map((option) => (
           <option
             key={option}
             value={option}
@@ -1149,14 +1305,16 @@ function CustomSelectField({
           </option>
         ))}
 
-        <option value="Other">Other</option>
+        <option value="Other">
+          Other
+        </option>
       </select>
 
-      {otherSelected && (
+      {customSelected && (
         <input
           value={value}
           onChange={(event) =>
-            onOtherChange(
+            onCustomInput(
               field,
               event.target.value
             )
@@ -1164,6 +1322,80 @@ function CustomSelectField({
           placeholder={`Enter Other ${label}`}
           className={`${inputClass} mt-3`}
         />
+      )}
+    </div>
+  );
+}
+
+type CopyrightFieldProps = {
+  label: string;
+  value: CopyrightOwner;
+  customValue: string;
+  generatedLine: string;
+  onValueChange: (
+    value: CopyrightOwner
+  ) => void;
+  onCustomChange: (value: string) => void;
+};
+
+function CopyrightField({
+  label,
+  value,
+  customValue,
+  generatedLine,
+  onValueChange,
+  onCustomChange,
+}: CopyrightFieldProps) {
+  return (
+    <div>
+      <label className="mb-3 block font-bold">
+        {label}
+      </label>
+
+      <select
+        value={value}
+        onChange={(event) =>
+          onValueChange(
+            event.target
+              .value as CopyrightOwner
+          )
+        }
+        className={inputClass}
+      >
+        <option value="">
+          Select Copyright Owner
+        </option>
+        <option value="143 Studios">
+          143 Studios
+        </option>
+        <option value="Artist">
+          Selected Artist
+        </option>
+        <option value="143 Studios & Artist">
+          143 Studios & Selected Artist
+        </option>
+        <option value="Other">
+          Other
+        </option>
+      </select>
+
+      {value === "Other" && (
+        <input
+          value={customValue}
+          onChange={(event) =>
+            onCustomChange(
+              event.target.value
+            )
+          }
+          placeholder="Enter Other Copyright Owner"
+          className={`${inputClass} mt-3`}
+        />
+      )}
+
+      {generatedLine && (
+        <div className="mt-3 rounded-xl border border-zinc-800 bg-black p-4 text-sm text-gray-300">
+          {generatedLine}
+        </div>
       )}
     </div>
   );

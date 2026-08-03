@@ -10,6 +10,12 @@ const eslintConfig = defineConfig([
   ...normalizeConfig(nextVitals),
   ...normalizeConfig(nextTs),
 
+  {
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
+
   globalIgnores([
     ".next/**",
     "out/**",

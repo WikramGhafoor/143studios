@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
@@ -16,71 +16,78 @@ type ReleaseFormState = {
   title: string;
   slug: string;
   artist_id: string;
-
   release_type: string;
+  song_type: string;
   version: string;
   genre: string;
+  subgenre: string;
   language: string;
+  content_advisory: string;
   release_date: string;
-
   cover: string;
   audio_url: string;
   duration: string;
-
   upc: string;
   isrc: string;
-
   label: string;
-
   copyright_c: string;
   copyright_p: string;
-
   description: string;
   lyrics: string;
   credits: string;
-
   status: string;
   featured: boolean;
   sort_order: number;
-
   spotify: string;
   apple_music: string;
   youtube: string;
   youtube_music: string;
 };
 
+type CustomField =
+  | "release_type"
+  | "song_type"
+  | "version"
+  | "genre"
+  | "subgenre"
+  | "language"
+  | "content_advisory"
+  | "label";
+
+type CopyrightOwner =
+  | ""
+  | "143 Studios"
+  | "Artist"
+  | "143 Studios & Artist"
+  | "Custom";
+
 const initialForm: ReleaseFormState = {
   release_code: "",
   title: "",
   slug: "",
   artist_id: "",
-
   release_type: "",
+  song_type: "",
   version: "",
   genre: "",
+  subgenre: "",
   language: "",
+  content_advisory: "",
   release_date: "",
-
   cover: "",
   audio_url: "",
   duration: "",
-
   upc: "",
   isrc: "",
-
   label: "143 Studios",
-
   copyright_c: "",
   copyright_p: "",
-
   description: "",
   lyrics: "",
   credits: "",
-
   status: "draft",
   featured: false,
   sort_order: 0,
-
   spotify: "",
   apple_music: "",
   youtube: "",
@@ -90,17 +97,164 @@ const initialForm: ReleaseFormState = {
 const inputClass =
   "w-full rounded-xl border border-red-900 bg-zinc-950 p-4 text-white outline-none transition-colors placeholder:text-gray-500 focus:border-red-600 focus-visible:ring-2 focus-visible:ring-red-500";
 
+const options = {
+  release_type: [
+    "Single",
+    "EP",
+    "Album",
+    "Compilation",
+    "Live",
+    "Remix",
+  ],
+  song_type: [
+    "Original",
+    "Remix",
+    "Acoustic",
+    "Instrumental",
+    "Cover",
+    "Live",
+    "Karaoke",
+    "Demo",
+  ],
+  version: [
+    "Original Version",
+    "Acoustic Version",
+    "Live Version",
+    "Remix Version",
+    "Radio Edit",
+    "Extended Mix",
+    "Club Mix",
+    "Instrumental Version",
+  ],
+  genre: [
+    "Pop",
+    "Hip-Hop",
+    "Rap",
+    "R&B",
+    "Rock",
+    "Folk",
+    "Electronic",
+    "Dance",
+    "Classical",
+    "Country",
+    "Jazz",
+    "Blues",
+    "Soul",
+    "Reggae",
+    "World",
+    "Soundtrack",
+  ],
+  subgenre: [
+    "Alternative Pop",
+    "Indie Pop",
+    "Synth-Pop",
+    "Punjabi Folk",
+    "Urdu Pop",
+    "Desi Hip-Hop",
+    "Trap",
+    "Boom Bap",
+    "Lo-Fi",
+    "Dance-Pop",
+    "Electronic Pop",
+    "Soft Rock",
+    "Pop Rock",
+    "Acoustic Pop",
+    "Devotional",
+  ],
+  language: [
+    "Urdu",
+    "Punjabi",
+    "English",
+    "Hindi",
+    "Saraiki",
+    "Pashto",
+    "Sindhi",
+    "Balochi",
+    "Arabic",
+    "Instrumental",
+    "Multilingual",
+  ],
+  content_advisory: [
+    "None",
+    "Clean",
+    "Explicit",
+  ],
+  label: [
+    "143 Studios",
+    "Independent",
+  ],
+} satisfies Record<CustomField, string[]>;
+
+function slugify(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 export default function AddReleaseForm() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [coverUploading, setCoverUploading] =
+    useState(false);
+  const [audioUploading, setAudioUploading] =
+    useState(false);
   const [artistsLoading, setArtistsLoading] =
     useState(true);
 
   const [artists, setArtists] = useState<Artist[]>([]);
   const [form, setForm] =
     useState<ReleaseFormState>(initialForm);
+
+  const [customSelected, setCustomSelected] =
+    useState<Record<CustomField, boolean>>({
+      release_type: false,
+      song_type: false,
+      version: false,
+      genre: false,
+      subgenre: false,
+      language: false,
+      content_advisory: false,
+      label: false,
+    });
+
+  const [copyrightCOwner, setCopyrightCOwner] =
+    useState<CopyrightOwner>("143 Studios");
+
+  const [copyrightPOwner, setCopyrightPOwner] =
+    useState<CopyrightOwner>("143 Studios");
+
+  const [customCopyrightCOwner, setCustomCopyrightCOwner] =
+    useState("");
+
+  const [customCopyrightPOwner, setCustomCopyrightPOwner] =
+    useState("");
+
+  const selectedArtist = useMemo(
+    () =>
+      artists.find(
+        (artist) =>
+          String(artist.id) === form.artist_id
+      ) ?? null,
+    [artists, form.artist_id]
+  );
+
+  const artistName =
+    selectedArtist?.stage_name?.trim() || "";
+
+  const releaseYear = useMemo(() => {
+    const year = Number(
+      form.release_date.slice(0, 4)
+    );
+
+    return year > 0
+      ? year
+      : new Date().getFullYear();
+  }, [form.release_date]);
 
   useEffect(() => {
     let mounted = true;
@@ -129,7 +283,9 @@ export default function AddReleaseForm() {
         }
 
         if (mounted) {
-          setArtists((data as Artist[] | null) ?? []);
+          setArtists(
+            (data as Artist[] | null) ?? []
+          );
         }
       } catch (error) {
         console.error(
@@ -154,6 +310,60 @@ export default function AddReleaseForm() {
     };
   }, []);
 
+  useEffect(() => {
+    function ownerText(
+      owner: CopyrightOwner,
+      customOwner: string
+    ) {
+      if (owner === "143 Studios") {
+        return "143 Studios";
+      }
+
+      if (owner === "Artist") {
+        return artistName;
+      }
+
+      if (owner === "143 Studios & Artist") {
+        return artistName
+          ? `143 Studios & ${artistName}`
+          : "143 Studios";
+      }
+
+      if (owner === "Custom") {
+        return customOwner.trim();
+      }
+
+      return "";
+    }
+
+    const cOwner = ownerText(
+      copyrightCOwner,
+      customCopyrightCOwner
+    );
+
+    const pOwner = ownerText(
+      copyrightPOwner,
+      customCopyrightPOwner
+    );
+
+    setForm((current) => ({
+      ...current,
+      copyright_c: cOwner
+        ? `© ${releaseYear} ${cOwner}`
+        : "",
+      copyright_p: pOwner
+        ? `℗ ${releaseYear} ${pOwner}`
+        : "",
+    }));
+  }, [
+    artistName,
+    copyrightCOwner,
+    copyrightPOwner,
+    customCopyrightCOwner,
+    customCopyrightPOwner,
+    releaseYear,
+  ]);
+
   function handleChange(
     event: React.ChangeEvent<
       | HTMLInputElement
@@ -163,9 +373,47 @@ export default function AddReleaseForm() {
   ) {
     const { name, value } = event.target;
 
+    setForm((current) => {
+      const next = {
+        ...current,
+        [name]: value,
+      };
+
+      if (
+        name === "title" &&
+        !current.slug.trim()
+      ) {
+        next.slug = slugify(value);
+      }
+
+      return next;
+    });
+  }
+
+  function handleCustomSelect(
+    field: CustomField,
+    value: string
+  ) {
+    const isCustom = value === "Custom";
+
+    setCustomSelected((current) => ({
+      ...current,
+      [field]: isCustom,
+    }));
+
     setForm((current) => ({
       ...current,
-      [name]: value,
+      [field]: isCustom ? "" : value,
+    }));
+  }
+
+  function handleCustomInput(
+    field: CustomField,
+    value: string
+  ) {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
     }));
   }
 
@@ -184,7 +432,7 @@ export default function AddReleaseForm() {
       return;
     }
 
-    setUploading(true);
+    setCoverUploading(true);
 
     try {
       const url = await uploadToCloudinary(file);
@@ -206,7 +454,7 @@ export default function AddReleaseForm() {
 
       alert("Cover Upload Failed.");
     } finally {
-      setUploading(false);
+      setCoverUploading(false);
       event.target.value = "";
     }
   }
@@ -217,6 +465,22 @@ export default function AddReleaseForm() {
     const file = event.target.files?.[0];
 
     if (!file) {
+      return;
+    }
+
+    if (!form.release_code.trim()) {
+      alert(
+        "Please Enter The Release Code Before Uploading Audio."
+      );
+      event.target.value = "";
+      return;
+    }
+
+    if (!form.title.trim()) {
+      alert(
+        "Please Enter The Release Title Before Uploading Audio."
+      );
+      event.target.value = "";
       return;
     }
 
@@ -236,7 +500,7 @@ export default function AddReleaseForm() {
       return;
     }
 
-    setUploading(true);
+    setAudioUploading(true);
 
     try {
       const prepareResponse = await fetch(
@@ -247,6 +511,10 @@ export default function AddReleaseForm() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
+            releaseCode:
+              form.release_code.trim(),
+            releaseTitle:
+              form.title.trim(),
             fileName: file.name,
             fileType: file.type,
             fileSize: file.size,
@@ -357,7 +625,7 @@ export default function AddReleaseForm() {
           : "Audio Upload Failed."
       );
     } finally {
-      setUploading(false);
+      setAudioUploading(false);
       event.target.value = "";
     }
   }
@@ -367,7 +635,11 @@ export default function AddReleaseForm() {
   ) {
     event.preventDefault();
 
-    if (loading || uploading) {
+    if (
+      loading ||
+      coverUploading ||
+      audioUploading
+    ) {
       return;
     }
 
@@ -395,27 +667,38 @@ export default function AddReleaseForm() {
 
     try {
       const payload = {
-        release_code: form.release_code.trim(),
+        release_code:
+          form.release_code.trim(),
         title: form.title.trim(),
         slug: form.slug.trim(),
         artist_id: Number(form.artist_id),
 
         release_type:
           form.release_type.trim() || null,
-        version: form.version.trim() || null,
-        genre: form.genre.trim() || null,
-        language: form.language.trim() || null,
-        release_date: form.release_date || null,
+        version:
+          form.version.trim() || null,
+        genre:
+          form.genre.trim() || null,
+        language:
+          form.language.trim() || null,
+        release_date:
+          form.release_date || null,
 
-        cover: form.cover || null,
-        audio_url: form.audio_url.trim() || null,
-        duration: form.duration.trim() || null,
+        cover:
+          form.cover || null,
+        audio_url:
+          form.audio_url.trim() || null,
+        duration:
+          form.duration.trim() || null,
 
-        upc: form.upc.trim() || null,
-        isrc: form.isrc.trim() || null,
+        upc:
+          form.upc.trim() || null,
+        isrc:
+          form.isrc.trim() || null,
 
         label:
-          form.label.trim() || "143 Studios",
+          form.label.trim() ||
+          "143 Studios",
 
         copyright_c:
           form.copyright_c.trim() || null,
@@ -424,20 +707,31 @@ export default function AddReleaseForm() {
 
         description:
           form.description.trim() || null,
-        lyrics: form.lyrics.trim() || null,
-        credits: form.credits.trim() || null,
+        lyrics:
+          form.lyrics.trim() || null,
+        credits:
+          form.credits.trim() || null,
 
         status: form.status,
         featured: form.featured,
         sort_order:
           Number(form.sort_order) || 0,
 
-        spotify: form.spotify.trim() || null,
+        spotify:
+          form.spotify.trim() || null,
         apple_music:
           form.apple_music.trim() || null,
-        youtube: form.youtube.trim() || null,
+        youtube:
+          form.youtube.trim() || null,
         youtube_music:
           form.youtube_music.trim() || null,
+
+        song_type:
+          form.song_type.trim() || null,
+        content_advisory:
+          form.content_advisory.trim() || null,
+        subgenre:
+          form.subgenre.trim() || null,
 
         updated_at: new Date().toISOString(),
       };
@@ -474,13 +768,14 @@ export default function AddReleaseForm() {
     }
   }
 
+  const uploading =
+    coverUploading || audioUploading;
+
   return (
     <form
       onSubmit={saveRelease}
       className="space-y-8"
     >
-      {/* Basic Information */}
-
       <section className="rounded-2xl border border-red-900 bg-zinc-950 p-6">
         <h2 className="mb-6 text-2xl font-black">
           Basic Information
@@ -539,47 +834,81 @@ export default function AddReleaseForm() {
             ))}
           </select>
 
-          <select
-            name="release_type"
+          <CustomSelect
+            label="Release Type"
+            field="release_type"
             value={form.release_type}
-            onChange={handleChange}
-            className={inputClass}
-          >
-            <option value="">
-              Select Release Type
-            </option>
-            <option value="Single">Single</option>
-            <option value="EP">EP</option>
-            <option value="Album">Album</option>
-            <option value="Compilation">
-              Compilation
-            </option>
-            <option value="Live">Live</option>
-            <option value="Remix">Remix</option>
-          </select>
+            customSelected={
+              customSelected.release_type
+            }
+            onSelect={handleCustomSelect}
+            onCustomInput={handleCustomInput}
+          />
 
-          <input
-            name="version"
+          <CustomSelect
+            label="Song Type"
+            field="song_type"
+            value={form.song_type}
+            customSelected={
+              customSelected.song_type
+            }
+            onSelect={handleCustomSelect}
+            onCustomInput={handleCustomInput}
+          />
+
+          <CustomSelect
+            label="Version"
+            field="version"
             value={form.version}
-            onChange={handleChange}
-            placeholder="Version — Original / Remix / Live"
-            className={inputClass}
+            customSelected={
+              customSelected.version
+            }
+            onSelect={handleCustomSelect}
+            onCustomInput={handleCustomInput}
           />
 
-          <input
-            name="genre"
+          <CustomSelect
+            label="Genre"
+            field="genre"
             value={form.genre}
-            onChange={handleChange}
-            placeholder="Genre"
-            className={inputClass}
+            customSelected={
+              customSelected.genre
+            }
+            onSelect={handleCustomSelect}
+            onCustomInput={handleCustomInput}
           />
 
-          <input
-            name="language"
+          <CustomSelect
+            label="Subgenre"
+            field="subgenre"
+            value={form.subgenre}
+            customSelected={
+              customSelected.subgenre
+            }
+            onSelect={handleCustomSelect}
+            onCustomInput={handleCustomInput}
+          />
+
+          <CustomSelect
+            label="Language"
+            field="language"
             value={form.language}
-            onChange={handleChange}
-            placeholder="Language"
-            className={inputClass}
+            customSelected={
+              customSelected.language
+            }
+            onSelect={handleCustomSelect}
+            onCustomInput={handleCustomInput}
+          />
+
+          <CustomSelect
+            label="Content Advisory"
+            field="content_advisory"
+            value={form.content_advisory}
+            customSelected={
+              customSelected.content_advisory
+            }
+            onSelect={handleCustomSelect}
+            onCustomInput={handleCustomInput}
           />
 
           <input
@@ -600,8 +929,6 @@ export default function AddReleaseForm() {
         </div>
       </section>
 
-      {/* Cover And Audio */}
-
       <section className="rounded-2xl border border-red-900 bg-zinc-950 p-6">
         <h2 className="mb-6 text-2xl font-black">
           Cover And Audio
@@ -621,7 +948,7 @@ export default function AddReleaseForm() {
               className={inputClass}
             />
 
-            {uploading && (
+            {coverUploading && (
               <p className="mt-3 text-yellow-400">
                 Uploading Cover...
               </p>
@@ -646,6 +973,11 @@ export default function AddReleaseForm() {
               Audio File
             </p>
 
+            <p className="mb-3 text-sm leading-6 text-gray-400">
+              Enter The Release Code And Release
+              Title Before Uploading Audio.
+            </p>
+
             <input
               type="file"
               accept="audio/*"
@@ -654,7 +986,7 @@ export default function AddReleaseForm() {
               className={inputClass}
             />
 
-            {uploading && (
+            {audioUploading && (
               <p className="mt-3 text-yellow-400">
                 Uploading Audio...
               </p>
@@ -678,8 +1010,6 @@ export default function AddReleaseForm() {
         </div>
       </section>
 
-      {/* Distribution Metadata */}
-
       <section className="rounded-2xl border border-red-900 bg-zinc-950 p-6">
         <h2 className="mb-6 text-2xl font-black">
           Distribution Metadata
@@ -702,33 +1032,50 @@ export default function AddReleaseForm() {
             className={inputClass}
           />
 
-          <input
-            name="label"
+          <CustomSelect
+            label="Label"
+            field="label"
             value={form.label}
-            onChange={handleChange}
-            placeholder="Label"
-            className={inputClass}
+            customSelected={
+              customSelected.label
+            }
+            onSelect={handleCustomSelect}
+            onCustomInput={handleCustomInput}
           />
 
-          <input
-            name="copyright_c"
-            value={form.copyright_c}
-            onChange={handleChange}
-            placeholder="© Copyright Line"
-            className={inputClass}
+          <div className="hidden md:block" />
+
+          <CopyrightField
+            label="© Copyright Line"
+            value={copyrightCOwner}
+            customValue={
+              customCopyrightCOwner
+            }
+            generatedLine={form.copyright_c}
+            onValueChange={
+              setCopyrightCOwner
+            }
+            onCustomChange={
+              setCustomCopyrightCOwner
+            }
           />
 
-          <input
-            name="copyright_p"
-            value={form.copyright_p}
-            onChange={handleChange}
-            placeholder="℗ Copyright Line"
-            className={inputClass}
+          <CopyrightField
+            label="℗ Phonographic Copyright Line"
+            value={copyrightPOwner}
+            customValue={
+              customCopyrightPOwner
+            }
+            generatedLine={form.copyright_p}
+            onValueChange={
+              setCopyrightPOwner
+            }
+            onCustomChange={
+              setCustomCopyrightPOwner
+            }
           />
         </div>
       </section>
-
-      {/* Release Content */}
 
       <section className="rounded-2xl border border-red-900 bg-zinc-950 p-6">
         <h2 className="mb-6 text-2xl font-black">
@@ -764,8 +1111,6 @@ export default function AddReleaseForm() {
           />
         </div>
       </section>
-
-      {/* Streaming Links */}
 
       <section className="rounded-2xl border border-red-900 bg-zinc-950 p-6">
         <h2 className="mb-6 text-2xl font-black">
@@ -806,8 +1151,6 @@ export default function AddReleaseForm() {
           />
         </div>
       </section>
-
-      {/* Admin Settings */}
 
       <section className="rounded-2xl border border-red-900 bg-zinc-950 p-6">
         <h2 className="mb-6 text-2xl font-black">
@@ -857,8 +1200,6 @@ export default function AddReleaseForm() {
         </label>
       </section>
 
-      {/* Actions */}
-
       <div className="flex flex-wrap gap-4">
         <button
           type="submit"
@@ -871,11 +1212,13 @@ export default function AddReleaseForm() {
         >
           {loading
             ? "Saving Release..."
-            : uploading
+            : coverUploading
               ? "Uploading Cover..."
-              : artistsLoading
-                ? "Loading Artists..."
-                : "Save Release"}
+              : audioUploading
+                ? "Uploading Audio..."
+                : artistsLoading
+                  ? "Loading Artists..."
+                  : "Save Release"}
         </button>
 
         <button
@@ -890,5 +1233,159 @@ export default function AddReleaseForm() {
         </button>
       </div>
     </form>
+  );
+}
+
+type CustomSelectProps = {
+  label: string;
+  field: CustomField;
+  value: string;
+  customSelected: boolean;
+  onSelect: (
+    field: CustomField,
+    value: string
+  ) => void;
+  onCustomInput: (
+    field: CustomField,
+    value: string
+  ) => void;
+};
+
+function CustomSelect({
+  label,
+  field,
+  value,
+  customSelected,
+  onSelect,
+  onCustomInput,
+}: CustomSelectProps) {
+  return (
+    <div>
+      <label
+        htmlFor={`${field}-select`}
+        className="mb-3 block font-bold"
+      >
+        {label}
+      </label>
+
+      <select
+        id={`${field}-select`}
+        value={
+          customSelected ? "Custom" : value
+        }
+        onChange={(event) =>
+          onSelect(
+            field,
+            event.target.value
+          )
+        }
+        className={inputClass}
+      >
+        <option value="">
+          Select {label}
+        </option>
+
+        {options[field].map((option) => (
+          <option
+            key={option}
+            value={option}
+          >
+            {option}
+          </option>
+        ))}
+
+        <option value="Custom">
+          Custom
+        </option>
+      </select>
+
+      {customSelected && (
+        <input
+          value={value}
+          onChange={(event) =>
+            onCustomInput(
+              field,
+              event.target.value
+            )
+          }
+          placeholder={`Enter Custom ${label}`}
+          className={`${inputClass} mt-3`}
+        />
+      )}
+    </div>
+  );
+}
+
+type CopyrightFieldProps = {
+  label: string;
+  value: CopyrightOwner;
+  customValue: string;
+  generatedLine: string;
+  onValueChange: (
+    value: CopyrightOwner
+  ) => void;
+  onCustomChange: (value: string) => void;
+};
+
+function CopyrightField({
+  label,
+  value,
+  customValue,
+  generatedLine,
+  onValueChange,
+  onCustomChange,
+}: CopyrightFieldProps) {
+  return (
+    <div>
+      <label className="mb-3 block font-bold">
+        {label}
+      </label>
+
+      <select
+        value={value}
+        onChange={(event) =>
+          onValueChange(
+            event.target
+              .value as CopyrightOwner
+          )
+        }
+        className={inputClass}
+      >
+        <option value="">
+          Select Copyright Owner
+        </option>
+        <option value="143 Studios">
+          143 Studios
+        </option>
+        <option value="Artist">
+          Selected Artist
+        </option>
+        <option value="143 Studios & Artist">
+          143 Studios & Selected Artist
+        </option>
+        <option value="Custom">
+          Custom
+        </option>
+      </select>
+
+      {value === "Custom" && (
+        <input
+          value={customValue}
+          onChange={(event) =>
+            onCustomChange(
+              event.target.value
+            )
+          }
+          placeholder="Enter Custom Copyright Owner"
+          className={`${inputClass} mt-3`}
+        />
+      )}
+
+      {generatedLine && (
+        <div className="mt-3 rounded-xl border border-zinc-800 bg-black p-4 text-sm text-gray-300">
+          {generatedLine}
+        </div>
+      )}
+    </div>
   );
 }

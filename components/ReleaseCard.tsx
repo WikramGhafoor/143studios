@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { publicReleaseSlug } from "@/lib/public-slugs";
 
 type Release = {
   id: string | number;
@@ -23,11 +24,11 @@ export default function ReleaseCard({
     release.artist?.trim() || "Unknown Artist";
 
   const releaseType =
-    release.type?.trim() || "Release";
+    release.type?.trim() || "";
 
   return (
     <Link
-      href={`/releases/${release.slug}`}
+      href={`/releases/${publicReleaseSlug(release.slug)}`}
       aria-label={`View ${releaseTitle}`}
       className="group flex h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
     >
@@ -57,9 +58,11 @@ export default function ReleaseCard({
             {artistName}
           </p>
 
-          <p className="mt-2 break-words text-gray-400">
-            {releaseType}
-          </p>
+          {releaseType && (
+            <p className="mt-2 break-words text-gray-400">
+              {releaseType}
+            </p>
+          )}
 
           {release.releaseDate && (
             <p className="mt-2 text-gray-400">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+import { createServerSupabaseClient } from "@/lib/site-pages-server";
 import ReleaseCard from "./ReleaseCard";
 
 type ReleaseArtist = {
@@ -54,6 +54,12 @@ function formatReleaseDate(
 }
 
 export default async function Releases() {
+  const supabase = createServerSupabaseClient();
+
+  if (!supabase) {
+    return null;
+  }
+
   const { data, error } = await supabase
     .from("releases")
     .select(`
@@ -148,8 +154,7 @@ export default async function Releases() {
                   release.artists
                 ),
                 type:
-                  release.release_type?.trim() ||
-                  "Release",
+                  release.release_type?.trim() || "",
                 releaseDate:
                   formatReleaseDate(
                     release.release_date

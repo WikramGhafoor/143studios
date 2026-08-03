@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
+import { cleanSlug, optionalTitle, titleCase } from "@/lib/text-format";
 
 type Artist = {
   id: number;
@@ -34,6 +35,11 @@ type Artist = {
 };
 
 const artistTypeOptions = [
+  "Single Artist (Solo)", "Double Artist (Duo)", "Triple Artist (Trio)",
+  "Quartet (4 Members)", "Quintet (5 Members)", "Sextet (6 Members)",
+  "Septet (7 Members)", "Octet (8 Members)", "Nonet (9 Members)",
+  "Band", "Music Group", "Choir", "Orchestra", "Rapper", "Singer/Rapper",
+  "Songwriter", "Lyricist", "DJ", "Instrumentalist", "Vocalist", "Musician", "Performer",
   "Singer",
   "Writer",
   "Composer",
@@ -67,6 +73,13 @@ const genreOptions = [
   "Soul",
   "Reggae",
   "World",
+  "Punjabi",
+  "Ghazal",
+  "Qawwali",
+  "Sufi",
+  "Nasheed",
+  "Lo-Fi",
+  "Instrumental",
 ];
 
 const cityOptions = [
@@ -78,6 +91,9 @@ const cityOptions = [
   "Multan",
   "Peshawar",
   "Quetta",
+  "Gujranwala",
+  "Sheikhupura",
+  "Sialkot",
 ];
 
 const countryOptions = [
@@ -89,6 +105,8 @@ const countryOptions = [
   "United Arab Emirates",
   "Saudi Arabia",
   "Australia",
+  "Bangladesh",
+  "Germany",
 ];
 
 type CustomArtistField =
@@ -164,7 +182,8 @@ export default function EditArtistForm({
 
     setForm((currentForm) => ({
       ...currentForm,
-      [name]: value,
+      [name]: name === "stage_name" ? titleCase(value) : value,
+      ...(name === "stage_name" ? { slug: cleanSlug(value) } : {}),
     }));
   }
 
@@ -172,7 +191,7 @@ export default function EditArtistForm({
     field: CustomArtistField,
     value: string
   ) {
-    const isCustom = value === "Custom";
+    const isCustom = value === "Other";
 
     setCustomSelected((current) => ({
       ...current,
@@ -211,7 +230,7 @@ export default function EditArtistForm({
     setUploadingField(field);
 
     try {
-      const url = await uploadToCloudinary(file);
+      const url = await uploadToCloudinary(file, `${form.stage_name || "artist"}-${field}`);
 
       if (!url) {
         alert("Image Upload Failed.");
@@ -248,25 +267,20 @@ export default function EditArtistForm({
       return;
     }
 
-    if (!form.slug.trim()) {
-      alert("Slug Is Required.");
-      return;
-    }
-
     setLoading(true);
 
     const payload = {
       artist_code: form.artist_code.trim(),
-      stage_name: form.stage_name.trim(),
-      real_name: form.real_name.trim() || null,
-      artist_type: form.artist_type.trim() || null,
-      genre: form.genre.trim() || null,
-      city: form.city.trim() || null,
-      country: form.country.trim() || null,
+      stage_name: titleCase(form.stage_name),
+      real_name: optionalTitle(form.real_name),
+      artist_type: optionalTitle(form.artist_type),
+      genre: optionalTitle(form.genre),
+      city: optionalTitle(form.city),
+      country: optionalTitle(form.country),
       bio: form.bio.trim() || null,
       image: form.image || null,
       banner: form.banner || null,
-      slug: form.slug.trim(),
+      slug: cleanSlug(form.stage_name),
       status: form.status,
       spotify: form.spotify.trim() || null,
       apple_music: form.apple_music.trim() || null,
@@ -496,9 +510,8 @@ export default function EditArtistForm({
           <input
             name="slug"
             value={form.slug}
-            onChange={handleChange}
             placeholder="Slug — artist-stage-name"
-            required
+            readOnly
             className={inputClass}
           />
         </div>
@@ -795,7 +808,7 @@ function CustomSelectField({
   return (
     <div>
       <select
-        value={customSelected ? "Custom" : value}
+        value={customSelected ? "Other" : value}
         onChange={(event) =>
           onSelect(field, event.target.value)
         }
@@ -817,8 +830,8 @@ function CustomSelectField({
           )
         )}
 
-        <option value="Custom">
-          Custom
+        <option value="Other">
+          Other
         </option>
       </select>
 
@@ -831,7 +844,7 @@ function CustomSelectField({
               event.target.value
             )
           }
-          placeholder={`Enter Custom ${label}`}
+          placeholder={`Enter Other ${label}`}
           className={`${inputClass} mt-3`}
         />
       )}

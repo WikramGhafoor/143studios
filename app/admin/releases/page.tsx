@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import DeleteReleaseButton from "./DeleteReleaseButton";
 import ToggleReleaseStatus from "./ToggleReleaseStatus";
@@ -68,12 +69,13 @@ export default async function AdminReleasesPage() {
                 >
                   <td className="py-4">
                     {release.cover ? (
-                      <img
+                      <Image
                         src={release.cover}
                         alt={release.title || "Release Cover"}
                         width={64}
                         height={64}
                         loading="lazy"
+                        unoptimized
                         className="h-16 w-16 rounded-xl object-cover"
                       />
                     ) : (

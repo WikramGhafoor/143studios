@@ -20,6 +20,31 @@ const MAX_PHONE_LENGTH = 40;
 const MAX_SERVICE_LENGTH = 100;
 const MAX_PROJECT_TITLE_LENGTH = 150;
 const MAX_MESSAGE_LENGTH = 5000;
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 5;
+
+const inquiryAttempts = new Map<
+  string,
+  { count: number; resetAt: number }
+>();
+
+function isRateLimited(request: Request): boolean {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  const clientId = forwardedFor?.split(",")[0]?.trim() || "unknown";
+  const now = Date.now();
+  const current = inquiryAttempts.get(clientId);
+
+  if (!current || current.resetAt <= now) {
+    inquiryAttempts.set(clientId, {
+      count: 1,
+      resetAt: now + RATE_LIMIT_WINDOW_MS,
+    });
+    return false;
+  }
+
+  current.count += 1;
+  return current.count > RATE_LIMIT_MAX_REQUESTS;
+}
 
 function cleanText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -55,6 +80,16 @@ function jsonResponse(
 
 export async function POST(request: Request) {
   try {
+    if (isRateLimited(request)) {
+      return jsonResponse(
+        {
+          success: false,
+          message: "Too Many Requests. Please Try Again In A Few Minutes.",
+        },
+        429
+      );
+    }
+
     const apiKey = process.env.RESEND_API_KEY;
     const inquiryEmail = process.env.INQUIRY_EMAIL;
     const fromEmail = process.env.RESEND_FROM_EMAIL;

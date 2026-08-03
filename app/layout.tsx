@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
-import Header from "@/components/Header";
+import HeaderLoader from "@/components/HeaderLoader";
 import Footer from "@/components/Footer";
 import AdminQuickAccess from "@/components/AdminQuickAccess";
+import GuruAssistantLoader from "@/components/GuruAssistantLoader";
+import { getSitePageServer } from "@/lib/site-pages-server";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -21,7 +23,7 @@ const geistMono = Geist_Mono({
 const siteUrl = "https://143studios.online";
 const googleAnalyticsId = "G-KYV9X235G4";
 
-export const metadata: Metadata = {
+const defaultMetadata: Metadata = {
   metadataBase: new URL(siteUrl),
 
   title: {
@@ -141,6 +143,77 @@ export const metadata: Metadata = {
     ],
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  const saved = await getSitePageServer("seo");
+
+  if (!saved) {
+    return defaultMetadata;
+  }
+
+  const text = (key: string, fallback: string) => {
+    const value = saved[key];
+    return typeof value === "string" && value.trim()
+      ? value.trim()
+      : fallback;
+  };
+
+  const keywords = text("keywords", "")
+    .split(",")
+    .map((keyword) => keyword.trim())
+    .filter(Boolean);
+
+  const description = text(
+    "meta_description",
+    defaultMetadata.description as string
+  );
+
+  return {
+    ...defaultMetadata,
+    title: {
+      default: text("site_title", "143 Studios | Official Website"),
+      template: text("title_template", "%s | 143 Studios"),
+    },
+    description,
+    applicationName: text("application_name", "143 Studios"),
+    keywords: keywords.length ? keywords : defaultMetadata.keywords,
+    authors: [{ name: text("author_name", "143 Studios"), url: siteUrl }],
+    creator: text("creator_name", "143 Studios"),
+    publisher: text("publisher_name", "143 Studios"),
+    category: text("category", "Music"),
+    robots: {
+      index: saved.robots_index !== false,
+      follow: saved.robots_follow !== false,
+      googleBot: {
+        index: saved.robots_index !== false,
+        follow: saved.robots_follow !== false,
+        "max-image-preview": "large",
+        "max-snippet": Number(saved.google_max_snippet ?? -1),
+        "max-video-preview": Number(saved.google_max_video_preview ?? -1),
+      },
+    },
+    openGraph: {
+      title: text("open_graph_title", "143 Studios"),
+      description: text("open_graph_description", description),
+      url: siteUrl,
+      siteName: text("open_graph_site_name", "143 Studios"),
+      locale: text("locale", "en_US"),
+      type: "website",
+      images: [{
+        url: text("open_graph_image_url", "/og-image.jpg"),
+        width: 1200,
+        height: 630,
+        alt: text("open_graph_image_alt", "143 Studios"),
+      }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: text("twitter_title", "143 Studios"),
+      description: text("twitter_description", description),
+      images: [text("twitter_image_url", "/og-image.jpg")],
+    },
+  };
+}
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -282,11 +355,12 @@ export default function RootLayout({
 
         {/* Global Header */}
 
-        <Header />
+        <HeaderLoader />
 
         {/* Logged-In Admin Quick Access */}
 
         <AdminQuickAccess />
+        <GuruAssistantLoader />
 
         {/* Main Website Content */}
 

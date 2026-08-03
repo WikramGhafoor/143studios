@@ -1,4 +1,4 @@
-import { getSitePage } from "@/lib/site-pages";
+import { getSitePageServer } from "@/lib/site-pages-server";
 
 type HomepageAboutContent = {
   about_title_prefix?: string;
@@ -18,7 +18,7 @@ const defaultContent = {
 
 export default async function About() {
   const savedContent =
-    await getSitePage("homepage");
+    await getSitePageServer("homepage");
 
   const content = {
     ...defaultContent,

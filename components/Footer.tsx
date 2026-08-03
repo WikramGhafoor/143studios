@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSitePage } from "@/lib/site-pages";
+import { getSitePageServer } from "@/lib/site-pages-server";
 
 
 type WebsiteFooterContent = {
@@ -45,7 +45,7 @@ export default async function Footer() {
   const currentYear = new Date().getFullYear();
 
   const savedContent =
-    await getSitePage("website");
+    await getSitePageServer("website");
 
   const content =
     (savedContent as WebsiteFooterContent | null) ??

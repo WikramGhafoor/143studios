@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getSitePage } from "@/lib/site-pages";
+import { getSitePageServer } from "@/lib/site-pages-server";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "About",
   description:
     "Learn More About 143 Studios, Our Story, Mission, Vision And Commitment To Artists Worldwide.",
+  alternates: {
+    canonical: "https://143studios.online/about",
+  },
 };
 
 
@@ -71,15 +76,15 @@ const coreValues = [
 ];
 
 const services = [
-  "Music Production",
-  "Artist Management",
-  "Music Distribution",
-  "Publishing Administration",
-  "Digital Marketing",
-  "Brand Development",
-  "Recording Studio",
-  "Mixing & Mastering",
-  "Content Creation",
+  { title: "Music Production", description: "Original Composition, Beat Production And Complete Song Development From Concept To Final Recording." },
+  { title: "Artist Management", description: "Career Planning, Release Coordination, Professional Representation And Long-Term Artist Development." },
+  { title: "Music Distribution", description: "Worldwide Delivery To Spotify, Apple Music, YouTube Music And Other Major Digital Platforms." },
+  { title: "Publishing Administration", description: "Song Registration, Copyright Administration, Rights Management And Royalty Support." },
+  { title: "Digital Marketing", description: "Focused Release Campaigns, Audience Development And Social Media Promotion For Artists And Music." },
+  { title: "Brand Development", description: "Artist Identity, Visual Direction, Cover Artwork And Consistent Creative Positioning." },
+  { title: "Recording Studio", description: "Professional Vocal, Instrument, Voiceover And Creative Audio Recording Services." },
+  { title: "Mixing & Mastering", description: "Clear, Balanced And Release-Ready Audio Prepared For Streaming And Commercial Platforms." },
+  { title: "Content Creation", description: "Music Videos, Visualizers, Lyric Videos And Promotional Content For Digital Campaigns." },
 ];
 
 const benefits = [
@@ -111,7 +116,7 @@ const statistics = [
 ];
 
 export default async function AboutPage() {
-  const savedContent = await getSitePage("about");
+  const savedContent = await getSitePageServer("about");
 
   const content: AboutPageContent = {
     ...defaultAboutContent,
@@ -211,17 +216,15 @@ export default async function AboutPage() {
         <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {services.map((service) => (
             <article
-              key={service}
+              key={service.title}
               className="min-w-0 rounded-2xl border border-red-900 bg-zinc-950 p-8 transition-colors hover:border-red-600"
             >
               <h3 className="break-words text-2xl font-black text-red-500">
-                {service}
+                {service.title}
               </h3>
 
               <p className="mt-4 leading-8 text-gray-400">
-                Professional Solutions Designed To Help Artists
-                Build Successful Careers In Today&apos;s Music
-                Industry.
+                {service.description}
               </p>
             </article>
           ))}

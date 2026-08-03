@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSitePage } from "@/lib/site-pages";
+import { getSitePageServer } from "@/lib/site-pages-server";
 
 type HomeService = {
   title: string;
@@ -60,7 +60,7 @@ const defaultServices: HomeService[] = [
 
 export default async function Services() {
   const savedContent =
-    await getSitePage("homepage");
+    await getSitePageServer("homepage");
 
   const content =
     (savedContent as HomepageServicesContent | null) ??

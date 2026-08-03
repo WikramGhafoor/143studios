@@ -5,7 +5,9 @@ import Services from "@/components/Services";
 import Artists from "@/components/Artists";
 import Releases from "@/components/Releases";
 import Contact from "@/components/Contact";
-import { getSitePage } from "@/lib/site-pages";
+import { getSitePageServer } from "@/lib/site-pages-server";
+
+export const dynamic = "force-dynamic";
 
 type HomepageContent = {
   hero_company_name?: string;
@@ -23,7 +25,7 @@ type HomepageContent = {
 
 export default async function Home() {
   const savedContent =
-    await getSitePage("homepage");
+    await getSitePageServer("homepage");
 
   const content =
     (savedContent as HomepageContent | null) ??

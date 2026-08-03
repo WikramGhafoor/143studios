@@ -1,5 +1,8 @@
 import { createHmac } from "node:crypto";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { cleanSlug, cleanUploadFileName } from "@/lib/text-format";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,6 +50,27 @@ export async function POST(
   request: Request
 ) {
   try {
+    const cookieStore = await cookies();
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+
+    if (!supabaseUrl || !supabaseAnonKey || !adminEmail) {
+      return NextResponse.json({ success: false, message: "Admin Upload Configuration Is Missing." }, { status: 500 });
+    }
+
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: () => undefined,
+      },
+    });
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.email?.trim().toLowerCase() !== adminEmail) {
+      return NextResponse.json({ success: false, message: "Unauthorized Upload Request." }, { status: 401 });
+    }
+
     const workerUrl =
       process.env.R2_WORKER_URL
         ?.replace(/\/+$/, "");
@@ -78,6 +102,8 @@ export async function POST(
         fileName?: string;
         fileType?: string;
         fileSize?: number;
+        releaseCode?: string;
+        releaseTitle?: string;
       };
 
     const fileName =
@@ -88,6 +114,8 @@ export async function POST(
 
     const fileSize =
       Number(body.fileSize);
+    const releaseCode = cleanSlug(body.releaseCode || "");
+    const releaseTitle = cleanSlug(body.releaseTitle || "");
 
     if (
       !fileName ||
@@ -139,11 +167,12 @@ export async function POST(
       );
     }
 
-    const cleanFileName =
-      sanitizeFileName(fileName);
-
-    const uniqueName =
-      `${Date.now()}-${cleanFileName}`;
+    const originalCleanName = cleanUploadFileName(sanitizeFileName(fileName), "audio-file");
+    const extension = originalCleanName.includes(".")
+      ? originalCleanName.slice(originalCleanName.lastIndexOf("."))
+      : ".mp3";
+    const cleanBaseName = [releaseTitle, releaseCode].filter(Boolean).join("-") || originalCleanName.replace(/\.[^.]+$/, "");
+    const uniqueName = `${cleanBaseName}${extension}`;
 
     const key =
       `releases/${uniqueName}`;
