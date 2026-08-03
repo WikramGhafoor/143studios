@@ -1,6 +1,33 @@
 import Image from "next/image";
 
-export default function Hero() {
+type HeroProps = {
+  companyName?: string;
+  companyHighlight?: string;
+  tagline?: string;
+  founderTitle?: string;
+  founderName?: string;
+  founderBrand?: string;
+  primaryButtonText?: string;
+  primaryButtonLink?: string;
+  secondaryButtonText?: string;
+  secondaryButtonLink?: string;
+  scrollText?: string;
+};
+
+export default function Hero({
+  companyName = "143",
+  companyHighlight = "Studios",
+  tagline =
+    "Music Label • Distribution • Publishing • Recording Studio",
+  founderTitle = "Founder & CEO",
+  founderName = "Wikram Ghafoor",
+  founderBrand = "GURU",
+  primaryButtonText = "Explore Services",
+  primaryButtonLink = "#services",
+  secondaryButtonText = "Contact Us",
+  secondaryButtonLink = "#contact",
+  scrollText = "Scroll Down",
+}: HeroProps) {
   return (
     <section
       id="home"
@@ -36,41 +63,43 @@ export default function Hero() {
           id="hero-heading"
           className="text-5xl font-black tracking-wide text-white drop-shadow-lg sm:text-6xl md:text-8xl"
         >
-          143 <span className="text-red-600">Studios</span>
+          {companyName}{" "}
+          <span className="text-red-600">
+            {companyHighlight}
+          </span>
         </h1>
 
         <p className="mt-6 text-base leading-8 text-gray-300 sm:text-lg">
-          Music Label • Distribution • Publishing • Recording
-          Studio
+          {tagline}
         </p>
 
         <div className="mt-12">
           <h2 className="text-2xl font-bold text-white">
-            Founder &amp; CEO
+            {founderTitle}
           </h2>
 
           <p className="mt-2 text-3xl font-extrabold text-red-500 sm:text-4xl">
-            Wikram Ghafoor
+            {founderName}
           </p>
 
           <p className="mt-2 text-xl font-bold tracking-[0.35em] text-yellow-400 sm:text-2xl">
-            GURU
+            {founderBrand}
           </p>
         </div>
 
         <div className="mt-14 flex flex-wrap justify-center gap-4 sm:gap-6">
           <a
-            href="#services"
+            href={primaryButtonLink}
             className="rounded-xl bg-red-600 px-8 py-4 font-bold text-white shadow-lg shadow-red-600/40 transition duration-300 hover:scale-105 hover:bg-red-700 hover:shadow-red-500/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
-            Explore Services
+            {primaryButtonText}
           </a>
 
           <a
-            href="#contact"
+            href={secondaryButtonLink}
             className="rounded-xl border-2 border-white px-8 py-4 font-bold text-white transition duration-300 hover:scale-105 hover:bg-white hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
-            Contact Us
+            {secondaryButtonText}
           </a>
         </div>
 
@@ -84,7 +113,7 @@ export default function Hero() {
             <br />
 
             <span className="text-sm tracking-widest">
-              Scroll Down
+              {scrollText}
             </span>
           </a>
         </div>

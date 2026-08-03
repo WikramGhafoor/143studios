@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getSitePage } from "@/lib/site-pages";
 import InquiryForm from "@/components/InquiryForm";
 import {
   FaEnvelope,
@@ -9,13 +10,81 @@ import {
   FaTiktok,
 } from "react-icons/fa";
 
-export const metadata: Metadata = {
-  title: "Contact",
-  description:
-    "Contact 143 Studios For Record Label, Music Production, Distribution, Publishing And Artist Services.",
+type ContactPageContent = {
+  metadata_title: string;
+  metadata_description: string;
+  hero_eyebrow: string;
+  hero_title: string;
+  hero_description: string;
+  inquiry_title: string;
+  inquiry_description: string;
+  contact_information_title: string;
+  email_label: string;
+  email_address: string;
+  whatsapp_label: string;
+  whatsapp_number: string;
+  whatsapp_link: string;
+  social_title: string;
+  facebook_url: string;
+  instagram_url: string;
+  youtube_url: string;
+  tiktok_url: string;
+  whatsapp_channel_url: string;
 };
 
-export default function ContactPage() {
+const defaultContactContent: ContactPageContent = {
+  metadata_title: "Contact",
+  metadata_description:
+    "Contact 143 Studios For Record Label, Music Production, Distribution, Publishing And Artist Services.",
+  hero_eyebrow: "Contact 143 Studios",
+  hero_title: "Start Your Project",
+  hero_description:
+    "Whether You Need Record Label Services, Music Production, Distribution, Publishing Or Artist Management, Send Us Your Inquiry And Our Team Will Contact You.",
+  inquiry_title: "Send An Inquiry",
+  inquiry_description:
+    "Complete The Form Below And We Will Contact You As Soon As Possible.",
+  contact_information_title:
+    "Contact Information",
+  email_label: "Email",
+  email_address:
+    "143studiospakistan@gmail.com",
+  whatsapp_label: "WhatsApp",
+  whatsapp_number: "+92 304 4457505",
+  whatsapp_link:
+    "https://wa.me/923044457505",
+  social_title: "Follow 143 Studios",
+  facebook_url:
+    "https://www.facebook.com/profile.php?id=61590549212493",
+  instagram_url:
+    "https://www.instagram.com/143studios.guru",
+  youtube_url:
+    "https://www.youtube.com/@143StudiosOfficial",
+  tiktok_url:
+    "https://www.tiktok.com/@143studios",
+  whatsapp_channel_url:
+    "https://whatsapp.com/channel/0029VbCpgUcGufIyFHUFlw37",
+};
+
+async function getContactContent(): Promise<ContactPageContent> {
+  const savedContent = await getSitePage("contact");
+
+  return {
+    ...defaultContactContent,
+    ...(savedContent as Partial<ContactPageContent> | null),
+  };
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const content = await getContactContent();
+
+  return {
+    title: content.metadata_title,
+    description: content.metadata_description,
+  };
+}
+
+export default async function ContactPage() {
+  const content = await getContactContent();
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Hero */}
@@ -23,17 +92,15 @@ export default function ContactPage() {
       <section className="border-b border-red-900 bg-gradient-to-b from-black via-zinc-950 to-black">
         <div className="mx-auto max-w-7xl px-6 py-24 text-center">
           <p className="font-bold uppercase tracking-[0.3em] text-red-500">
-            Contact 143 Studios
+            {content.hero_eyebrow}
           </p>
 
           <h1 className="mt-6 text-5xl font-black md:text-7xl">
-            Start Your Project
+            {content.hero_title}
           </h1>
 
           <p className="mx-auto mt-8 max-w-3xl text-xl leading-9 text-gray-400">
-            Whether You Need Record Label Services, Music Production,
-            Distribution, Publishing Or Artist Management,
-            Send Us Your Inquiry And Our Team Will Contact You.
+            {content.hero_description}
           </p>
         </div>
       </section>
@@ -49,11 +116,11 @@ export default function ContactPage() {
           <div>
 
             <h2 className="text-4xl font-black">
-              Send An Inquiry
+              {content.inquiry_title}
             </h2>
 
             <p className="mt-5 text-gray-400">
-              Complete The Form Below And We Will Contact You As Soon As Possible.
+              {content.inquiry_description}
             </p>
 
             <InquiryForm />
@@ -67,7 +134,7 @@ export default function ContactPage() {
             <div className="rounded-3xl border border-red-900 bg-zinc-950 p-8">
 
               <h2 className="text-3xl font-black">
-                Contact Information
+                {content.contact_information_title}
               </h2>
 
               <div className="mt-8 space-y-8">
@@ -77,14 +144,14 @@ export default function ContactPage() {
 
                   <div>
                     <p className="font-bold">
-                      Email
+                      {content.email_label}
                     </p>
 
                     <a
-                      href="mailto:143studiospakistan@gmail.com"
+                      href={`mailto:${content.email_address}`}
                       className="text-gray-400 hover:text-red-500"
                     >
-                      143studiospakistan@gmail.com
+                      {content.email_address}
                     </a>
                   </div>
                 </div>
@@ -94,16 +161,16 @@ export default function ContactPage() {
 
                   <div>
                     <p className="font-bold">
-                      WhatsApp
+                      {content.whatsapp_label}
                     </p>
 
                     <a
-                      href="https://wa.me/923044457505"
+                      href={content.whatsapp_link}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-gray-400 hover:text-green-500"
                     >
-                      +92 304 4457505
+                      {content.whatsapp_number}
                     </a>
                   </div>
                 </div>
@@ -115,13 +182,13 @@ export default function ContactPage() {
             <div className="mt-8 rounded-3xl border border-red-900 bg-zinc-950 p-8">
 
               <h2 className="text-3xl font-black">
-                Follow 143 Studios
+                {content.social_title}
               </h2>
 
               <div className="mt-8 flex flex-wrap gap-6 text-4xl">
 
                 <a
-                  href="https://www.facebook.com/profile.php?id=61590549212493"
+                  href={content.facebook_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-500 hover:scale-110"
@@ -130,7 +197,7 @@ export default function ContactPage() {
                 </a>
 
                 <a
-                  href="https://www.instagram.com/143studios.guru"
+                  href={content.instagram_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-pink-500 hover:scale-110"
@@ -139,7 +206,7 @@ export default function ContactPage() {
                 </a>
 
                 <a
-                  href="https://www.youtube.com/@143StudiosOfficial"
+                  href={content.youtube_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-red-600 hover:scale-110"
@@ -148,7 +215,7 @@ export default function ContactPage() {
                 </a>
 
                 <a
-                  href="https://www.tiktok.com/@143studios"
+                  href={content.tiktok_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:scale-110"
@@ -157,7 +224,7 @@ export default function ContactPage() {
                 </a>
 
                 <a
-                  href="https://whatsapp.com/channel/0029VbCpgUcGufIyFHUFlw37"
+                  href={content.whatsapp_channel_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-green-500 hover:scale-110"

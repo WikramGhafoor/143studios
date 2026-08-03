@@ -1,4 +1,15 @@
 import Link from "next/link";
+import { getSitePage } from "@/lib/site-pages";
+
+
+type WebsiteFooterContent = {
+  footer_company_name?: string;
+  footer_description?: string;
+  footer_navigation_title?: string;
+  footer_legal_title?: string;
+  footer_copyright_name?: string;
+  footer_rights_text?: string;
+};
 
 type FooterLink = {
   title: string;
@@ -30,8 +41,15 @@ const legalLinks: FooterLink[] = [
   },
 ];
 
-export default function Footer() {
+export default async function Footer() {
   const currentYear = new Date().getFullYear();
+
+  const savedContent =
+    await getSitePage("website");
+
+  const content =
+    (savedContent as WebsiteFooterContent | null) ??
+    {};
 
   return (
     <footer className="mt-auto border-t border-red-900 bg-zinc-950 text-gray-400">
@@ -42,13 +60,13 @@ export default function Footer() {
               id="footer-company-heading"
               className="text-3xl font-black text-white"
             >
-              143 Studios
+              {content.footer_company_name ??
+                "143 Studios"}
             </h2>
 
             <p className="mt-5 leading-8 text-gray-400">
-              Music Label, Distribution, Publishing,
-              Artist Management, Recording Studio And
-              Digital Media Company.
+              {content.footer_description ??
+                "Music Label, Distribution, Publishing, Artist Management, Recording Studio And Digital Media Company."}
             </p>
           </section>
 
@@ -57,7 +75,8 @@ export default function Footer() {
               id="footer-navigation-heading"
               className="text-xl font-black text-white"
             >
-              Navigation
+              {content.footer_navigation_title ??
+                "Navigation"}
             </h2>
 
             <nav
@@ -81,7 +100,8 @@ export default function Footer() {
               id="footer-legal-heading"
               className="text-xl font-black text-white"
             >
-              Legal
+              {content.footer_legal_title ??
+                "Legal"}
             </h2>
 
             <nav
@@ -103,12 +123,14 @@ export default function Footer() {
 
         <div className="mt-12 border-t border-zinc-800 pt-8 text-center">
           <p className="text-sm text-gray-400">
-            © {currentYear} 143 Studios (SMC-Private)
-            Limited.
+            © {currentYear}{" "}
+            {content.footer_copyright_name ??
+              "143 Studios (SMC-Private) Limited."}
           </p>
 
           <p className="mt-2 text-sm text-gray-500">
-            All Rights Reserved.
+            {content.footer_rights_text ??
+              "All Rights Reserved."}
           </p>
         </div>
       </div>

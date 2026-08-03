@@ -1,10 +1,54 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getSitePage } from "@/lib/site-pages";
 
 export const metadata: Metadata = {
   title: "About",
   description:
     "Learn More About 143 Studios, Our Story, Mission, Vision And Commitment To Artists Worldwide.",
+};
+
+
+type AboutPageContent = {
+  eyebrow: string;
+  hero_title: string;
+  hero_description: string;
+  story_title: string;
+  story_paragraph_one: string;
+  story_paragraph_two: string;
+  mission_title: string;
+  mission_text: string;
+  vision_title: string;
+  vision_text: string;
+  core_values_title: string;
+  what_we_do_title: string;
+  why_choose_title: string;
+  cta_title: string;
+  cta_text: string;
+};
+
+const defaultAboutContent: AboutPageContent = {
+  eyebrow: "About 143 Studios",
+  hero_title: "Music Beyond Limits",
+  hero_description:
+    "143 Studios Is A Modern Music Label Dedicated To Discovering Talent, Producing Exceptional Music, Building Artist Brands And Delivering Creative Entertainment To Audiences Around The World.",
+  story_title: "Our Story",
+  story_paragraph_one:
+    "143 Studios Was Founded With A Vision To Build A Professional Platform Where Artists, Producers, Songwriters And Creative Professionals Can Grow Together. Our Goal Is To Create High Quality Music While Helping Artists Build Long-Term Careers Through Modern Technology And Global Distribution.",
+  story_paragraph_two:
+    "We Believe Every Artist Has A Unique Story. Through Recording, Publishing, Distribution, Branding And Digital Promotion, We Transform Creative Ideas Into Professional Music Projects.",
+  mission_title: "Our Mission",
+  mission_text:
+    "To Empower Artists By Providing World-Class Music Production, Distribution, Publishing, Branding And Digital Solutions Under One Roof.",
+  vision_title: "Our Vision",
+  vision_text:
+    "To Become One Of The Most Trusted Independent Music Labels In The World By Creating Music That Inspires Millions And Building Careers That Last For Generations.",
+  core_values_title: "Our Core Values",
+  what_we_do_title: "What We Do",
+  why_choose_title: "Why Choose 143 Studios",
+  cta_title: "Ready To Work With 143 Studios?",
+  cta_text:
+    "Whether You Are An Artist, Producer, Songwriter, Content Creator Or Business Partner, We Are Ready To Build The Future Together.",
 };
 
 const coreValues = [
@@ -66,25 +110,29 @@ const statistics = [
   },
 ];
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const savedContent = await getSitePage("about");
+
+  const content: AboutPageContent = {
+    ...defaultAboutContent,
+    ...(savedContent as Partial<AboutPageContent> | null),
+  };
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-black text-white">
       {/* Hero */}
       <section className="border-b border-red-900 bg-gradient-to-b from-black to-zinc-950">
         <div className="mx-auto max-w-7xl px-4 py-20 text-center sm:px-6 md:py-24">
           <p className="font-bold uppercase tracking-[0.2em] text-red-500 sm:tracking-[0.3em]">
-            About 143 Studios
+            {content.eyebrow}
           </p>
 
           <h1 className="mt-6 text-4xl font-black sm:text-5xl md:text-7xl">
-            Music Beyond Limits
+            {content.hero_title}
           </h1>
 
           <p className="mx-auto mt-8 max-w-4xl text-lg leading-8 text-gray-400 sm:text-xl sm:leading-9">
-            143 Studios Is A Modern Music Label Dedicated To
-            Discovering Talent, Producing Exceptional Music,
-            Building Artist Brands And Delivering Creative
-            Entertainment To Audiences Around The World.
+            {content.hero_description}
           </p>
         </div>
       </section>
@@ -94,48 +142,34 @@ export default function AboutPage() {
         <div className="grid gap-12 lg:grid-cols-2">
           <div>
             <h2 className="text-3xl font-black sm:text-4xl">
-              Our Story
+              {content.story_title}
             </h2>
 
             <p className="mt-8 leading-8 text-gray-300 sm:leading-9">
-              143 Studios Was Founded With A Vision To Build A
-              Professional Platform Where Artists, Producers,
-              Songwriters And Creative Professionals Can Grow
-              Together. Our Goal Is To Create High Quality
-              Music While Helping Artists Build Long-Term
-              Careers Through Modern Technology And Global
-              Distribution.
+              {content.story_paragraph_one}
             </p>
 
             <p className="mt-6 leading-8 text-gray-300 sm:leading-9">
-              We Believe Every Artist Has A Unique Story.
-              Through Recording, Publishing, Distribution,
-              Branding And Digital Promotion, We Transform
-              Creative Ideas Into Professional Music Projects.
+              {content.story_paragraph_two}
             </p>
           </div>
 
           <div className="rounded-3xl border border-red-900 bg-zinc-950 p-6 sm:p-10">
             <h3 className="text-2xl font-black text-red-500 sm:text-3xl">
-              Our Mission
+              {content.mission_title}
             </h3>
 
             <p className="mt-6 leading-8 text-gray-300 sm:leading-9">
-              To Empower Artists By Providing World-Class
-              Music Production, Distribution, Publishing,
-              Branding And Digital Solutions Under One Roof.
+              {content.mission_text}
             </p>
 
             <div className="mt-10 border-t border-zinc-800 pt-8">
               <h3 className="text-2xl font-black text-red-500 sm:text-3xl">
-                Our Vision
+                {content.vision_title}
               </h3>
 
               <p className="mt-6 leading-8 text-gray-300 sm:leading-9">
-                To Become One Of The Most Trusted Independent
-                Music Labels In The World By Creating Music
-                That Inspires Millions And Building Careers
-                That Last For Generations.
+                {content.vision_text}
               </p>
             </div>
           </div>
@@ -146,7 +180,7 @@ export default function AboutPage() {
       <section className="bg-zinc-950 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <h2 className="text-center text-4xl font-black sm:text-5xl">
-            Our Core Values
+            {content.core_values_title}
           </h2>
 
           <div className="mt-16 grid gap-8 md:grid-cols-2 xl:grid-cols-4">
@@ -171,7 +205,7 @@ export default function AboutPage() {
       {/* Services */}
       <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6">
         <h2 className="text-center text-4xl font-black sm:text-5xl">
-          What We Do
+          {content.what_we_do_title}
         </h2>
 
         <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -198,7 +232,7 @@ export default function AboutPage() {
       <section className="bg-zinc-950 py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <h2 className="text-center text-4xl font-black sm:text-5xl">
-            Why Choose 143 Studios
+            {content.why_choose_title}
           </h2>
 
           <div className="mt-16 grid gap-8 md:grid-cols-2">
@@ -247,13 +281,11 @@ export default function AboutPage() {
       <section className="border-t border-red-900 bg-gradient-to-b from-zinc-950 to-black py-24">
         <div className="mx-auto max-w-5xl px-4 text-center sm:px-6">
           <h2 className="text-4xl font-black sm:text-5xl">
-            Ready To Work With 143 Studios?
+            {content.cta_title}
           </h2>
 
           <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-gray-400 sm:text-xl sm:leading-9">
-            Whether You Are An Artist, Producer, Songwriter,
-            Content Creator Or Business Partner, We Are Ready
-            To Build The Future Together.
+            {content.cta_text}
           </p>
 
           <div className="mt-12 flex flex-wrap justify-center gap-5">
